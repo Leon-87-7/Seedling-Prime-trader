@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: 'Seedling Prime trader',
   description:
     'Track real-time stock prices and manage your portfolio, get personalized alerts & explore detailed company insights with Seedling Prime trader.',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
