@@ -37,6 +37,18 @@ const buttonVariants = cva(
   }
 );
 
+/**
+ * Render a stylable button element, optionally delegating rendering to a child element.
+ *
+ * Renders a button styled with the `buttonVariants` system; when `asChild` is true, the component
+ * uses a Slot to pass props and classes to the provided child element instead of rendering a native button.
+ *
+ * @param className - Additional CSS classes to merge with the variant classes
+ * @param variant - Visual variant to apply (e.g., "default", "destructive", "outline", etc.)
+ * @param size - Size variant to apply (e.g., "default", "sm", "lg", "icon", etc.)
+ * @param asChild - When true, render the child element via Slot and forward props/classes to it
+ * @returns A React element representing the styled button or the delegated child element
+ */
 function Button({
   className,
   variant,
