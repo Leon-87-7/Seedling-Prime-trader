@@ -21,6 +21,12 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Root layout component that wraps application pages with html and body elements, applies the Geist fonts and dark theme class, and renders the provided content.
+ *
+ * @param children - React nodes to render inside the document body.
+ * @returns The root HTML structure containing the provided children.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
