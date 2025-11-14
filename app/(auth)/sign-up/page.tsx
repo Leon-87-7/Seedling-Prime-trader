@@ -1,6 +1,13 @@
 'use client';
-import InputFields from '@/components/forms/InputFields';
+import CountrySelectField from '@/components/forms/CountrySelectField';
+import InputField from '@/components/forms/InputField';
+import SelectField from '@/components/forms/SelectField';
 import { Button } from '@/components/ui/button';
+import {
+  INVESTMENT_GOALS,
+  PREFERRED_INDUSTRIES,
+  RISK_TOLERANCE_OPTIONS,
+} from '@/lib/constants';
 import { useForm } from 'react-hook-form';
 
 function SignUp() {
@@ -14,7 +21,7 @@ function SignUp() {
       fullName: '',
       email: '',
       password: '',
-      country: 'US',
+      country: '',
       investmentGoals: 'Growth',
       riskTolerance: 'Medium',
       preferredIndustry: 'Technology',
@@ -36,7 +43,7 @@ function SignUp() {
         className="space-y-5"
       >
         {/* Input fields will go here */}
-        <InputFields
+        <InputField
           name="fullName"
           label="Full Name"
           placeholder="John Doe"
@@ -47,7 +54,7 @@ function SignUp() {
             minLength: 2,
           }}
         />
-        <InputFields
+        <InputField
           name="email"
           label="Email"
           placeholder="john.doe@example.com"
@@ -61,7 +68,7 @@ function SignUp() {
             },
           }}
         />
-        <InputFields
+        <InputField
           name="password"
           label="Password"
           placeholder="Enter a strong password"
@@ -73,6 +80,45 @@ function SignUp() {
             minLength: 8,
           }}
         />
+
+        <CountrySelectField
+          name="country"
+          label="Country"
+          control={control}
+          error={errors.country}
+          required
+        />
+
+        <SelectField
+          name="investmentGoals"
+          label="Investment Goals"
+          placeholder="Select your investment goals"
+          options={INVESTMENT_GOALS}
+          error={errors.investmentGoals}
+          control={control}
+          required
+        />
+
+        <SelectField
+          name="riskTolerance"
+          label="Risk Tolerance"
+          placeholder="Select your risk level"
+          options={RISK_TOLERANCE_OPTIONS}
+          error={errors.riskTolerance}
+          control={control}
+          required
+        />
+
+        <SelectField
+          name="preferredIndustry"
+          label="Preferred Industry"
+          placeholder="Select your preferred industry"
+          options={PREFERRED_INDUSTRIES}
+          error={errors.preferredIndustry}
+          control={control}
+          required
+        />
+
         <Button
           type="submit"
           className="yellow-btn w-full mt-5"

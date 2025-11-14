@@ -147,6 +147,10 @@
     @apply mx-auto max-w-screen-2xl px-4 md:px-6 lg:px-8;
   }
 
+  .font-emoji {
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  }
+
   .yellow-btn {
     @apply h-12 cursor-pointer bg-gradient-to-b from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-gray-950 font-medium text-base rounded-lg shadow-lg disabled:opacity-50;
   }
@@ -204,7 +208,7 @@
   }
 
   .form-input {
-    @apply h-12 px-3 py-3 text-white text-base placeholder:text-gray-500 border-gray-600 bg-gray-800 rounded-lg focus:!border-yellow-500 focus:ring-0;
+    @apply w-full h-12 px-3 py-3 text-white text-base placeholder:text-gray-500 border-gray-600 bg-gray-800 rounded-lg focus:!border-yellow-500 focus:ring-0;
   }
 
   .select-trigger {
@@ -213,6 +217,10 @@
 
   .country-select-trigger {
     @apply h-12 px-3 py-3 text-base w-full justify-between font-normal border-gray-600 bg-gray-800 text-gray-400 rounded-lg focus:!border-yellow-500 focus:ring-0;
+  }
+
+  .country-select-popover {
+    @apply w-full min-w-[var(--radix-popover-trigger-width)] bg-gray-800 border-gray-600;
   }
 
   .country-select-input {

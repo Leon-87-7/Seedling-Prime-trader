@@ -2,7 +2,7 @@ import React from 'react';
 import { Label } from '../ui/label';
 import { cn } from '@/lib/utils';
 
-const InputFields = ({
+const InputField = ({
   name,
   label,
   placeholder,
@@ -39,4 +39,4 @@ const InputFields = ({
   );
 };
 
-export default InputFields;
+export default InputField;
