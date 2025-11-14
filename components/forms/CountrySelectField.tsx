@@ -27,6 +27,7 @@ const CountrySelectField = ({
   control,
   error,
   required = false,
+  helpText,
 }: CountrySelectProps) => {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
@@ -164,9 +165,9 @@ const CountrySelectField = ({
                   {error.message}
                 </p>
               )}
-              <p className="text-sm text-gray-500">
-                Helps us show market data and news relevant to you.
-              </p>
+              {helpText && (
+                <p className="text-sm text-gray-500">{helpText}</p>
+              )}
             </>
           );
         }}

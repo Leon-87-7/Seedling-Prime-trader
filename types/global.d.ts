@@ -20,6 +20,7 @@ declare global {
     control: Control<any>;
     error?: FieldError<any>;
     required?: boolean;
+    helpText?: string;
   };
 
   type FormInputProps = {

@@ -13,6 +13,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+const COMMAND_DIALOG_STYLES = [
+  '**:[[cmdk-group-heading]]:text-muted-foreground',
+  '**:data-[slot=command-input-wrapper]:h-12',
+  '**:[[cmdk-group-heading]]:px-2',
+  '**:[[cmdk-group-heading]]:font-medium',
+  '**:[[cmdk-group]]:px-2',
+  '**:[[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0',
+  '**:[[cmdk-input-wrapper]_svg]:h-5',
+  '**:[[cmdk-input-wrapper]_svg]:w-5',
+  '**:[[cmdk-input]]:h-12',
+  '**:[[cmdk-item]]:px-2',
+  '**:[[cmdk-item]]:py-3',
+  '**:[[cmdk-item]_svg]:h-5',
+  '**:[[cmdk-item]_svg]:w-5',
+].join(' ');
+
 function Command({
   className,
   ...props
@@ -52,7 +68,7 @@ function CommandDialog({
         className={cn('overflow-hidden p-0', className)}
         showCloseButton={showCloseButton}
       >
-        <Command className="**:[[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group]]:px-2 **:[[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 **:[[cmdk-input-wrapper]_svg]:h-5 **:[[cmdk-input-wrapper]_svg]:w-5 **:[[cmdk-input]]:h-12 **:[[cmdk-item]]:px-2 **:[[cmdk-item]]:py-3 **:[[cmdk-item]_svg]:h-5 **:[[cmdk-item]_svg]:w-5">
+        <Command className={COMMAND_DIALOG_STYLES}>
           {children}
         </Command>
       </DialogContent>
