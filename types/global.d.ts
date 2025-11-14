@@ -17,8 +17,8 @@ declare global {
   type CountrySelectProps = {
     name: string;
     label: string;
-    control: Control;
-    error?: FieldError;
+    control: Control<any>;
+    error?: FieldError<any>;
     required?: boolean;
   };
 
@@ -27,9 +27,9 @@ declare global {
     label: string;
     placeholder: string;
     type?: string;
-    register: UseFormRegister;
-    error?: FieldError;
-    validation?: RegisterOptions;
+    register: UseFormRegister<any>;
+    error?: FieldError<any>;
+    validation?: RegisterOptions<any>;
     disabled?: boolean;
     value?: string;
   };
@@ -44,8 +44,8 @@ declare global {
     label: string;
     placeholder: string;
     options: readonly Option[];
-    control: Control;
-    error?: FieldError;
+    control: Control<any>;
+    error?: FieldError<any>;
     required?: boolean;
   };
 
@@ -168,7 +168,7 @@ declare global {
     news?: MarketNewsArticle[];
   };
 
-  type SearchCommandProps = {
+  type SearchCommandButtonProps = {
     open?: boolean;
     setOpen?: (open: boolean) => void;
     renderAs?: 'button' | 'text';
@@ -182,7 +182,7 @@ declare global {
     company: string;
     alertName: string;
     alertType: 'upper' | 'lower';
-    threshold: string;
+    threshold: number;
   };
 
   type AlertModalProps = {

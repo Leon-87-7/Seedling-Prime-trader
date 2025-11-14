@@ -4,7 +4,7 @@ import Link from 'next/link';
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <main className="auth-layout">
-      <section className="auth-left-section scroll-hide-default">
+      <section className="auth-left-section scrollbar-hide-default">
         <Link
           href="/"
           className="auth-logo"
@@ -18,7 +18,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           />
         </Link>
 
-        <div className="pb-66 lg:pb-8 flex-1">{children}</div>
+        <div className="pb-6 lg:pb-8 flex-1">{children}</div>
       </section>
       <section className="auth-right-section">
         <div className="z-10 relative lg:mt-4 lg:mb-16">

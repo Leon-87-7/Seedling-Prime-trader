@@ -21,15 +21,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { countries } from '@/lib/countries';
 
-// interface CountrySelectFieldProps {
-//   name: string;
-//   label?: string;
-//   control: unknown;
-//   error?: { message?: string };
-//   required?: boolean;
-//   helperText?: string;
-// }
-
 const CountrySelectField = ({
   name,
   label = 'Country',
