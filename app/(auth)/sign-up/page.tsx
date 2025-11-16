@@ -111,7 +111,7 @@ function SignUp() {
           required
         />
 
-        {/* <SelectField
+        <SelectField
           name="preferredIndustry"
           label="Preferred Industry"
           placeholder="Select your preferred industry"
@@ -119,7 +119,7 @@ function SignUp() {
           error={errors.preferredIndustry}
           control={control}
           required
-        /> */}
+        />
 
         <Button
           type="submit"
