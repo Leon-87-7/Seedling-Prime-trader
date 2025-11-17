@@ -1,6 +1,6 @@
-import { success } from 'better-auth';
 import { inngest } from './client';
 import { PERSONALIZED_WELCOME_EMAIL_PROMPT } from './prompts';
+import { sendWelcomeEmail } from '../nodemailer';
 
 export const sendSignUpEmail = inngest.createFunction(
   { id: 'sign-up-email' },
@@ -42,7 +42,14 @@ export const sendSignUpEmail = inngest.createFunction(
         (part && 'text' in part ? part.text : null) ||
         'Welcome to Seedling Prime! We are thrilled to have you on board as you embark on your investment journey with us. track the market, manage your portfolio, and achieve your financial goals.';
 
-      //email sending logic here
+      const {
+        data: { email, name },
+      } = event;
+      return await sendWelcomeEmail({
+        email,
+        name,
+        intro: introText,
+      });
     });
 
     return {
