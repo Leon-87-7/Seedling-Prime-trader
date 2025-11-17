@@ -14,12 +14,24 @@ import {
 import { useRouter } from 'next/navigation';
 import NavItems from './NavItems';
 import { signOut } from '@/lib/actions/auth.actions';
+import { toast } from 'sonner';
 
 const UserDropdown = ({ user }: { user: User }) => {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    await signOut();
+    const result = await signOut();
+
+    // Check if sign-out failed
+    if (result?.success === false || result?.error) {
+      console.error('Sign out failed:', result?.error);
+      toast.error('Sign out failed', {
+        description: result?.error || 'Unable to sign out. Please try again.',
+      });
+      return;
+    }
+
+    // Only redirect on successful sign-out
     router.push('/sign-in');
   };
 

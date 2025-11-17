@@ -40,7 +40,7 @@ export const sendSignUpEmail = inngest.createFunction(
       const part = response.candidates?.[0]?.content?.parts?.[0];
       const introText =
         (part && 'text' in part ? part.text : null) ||
-        'Welcome to Seedling Prime! We are thrilled to have you on board as you embark on your investment journey with us. track the market, manage your portfolio, and achieve your financial goals.';
+        'Welcome to Seedling Prime! \nullWe are thrilled to have you on board as you embark on your investment journey with us.\nTrack the market, manage your portfolio, and achieve your financial goals.';
 
       const {
         data: { email, name },

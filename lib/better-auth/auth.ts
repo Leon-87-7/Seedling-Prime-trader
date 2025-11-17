@@ -15,6 +15,12 @@ export const getAuth = async () => {
 
   if (!db) throw new Error('MongoDB connection not found');
 
+  if (!process.env.BETTER_AUTH_SECRET) {
+    throw new Error(
+      'BETTER_AUTH_SECRET environment variable is required'
+    );
+  }
+
   authInstance = betterAuth({
     database: mongodbAdapter(db as any),
     secret: process.env.BETTER_AUTH_SECRET,
@@ -33,4 +39,4 @@ export const getAuth = async () => {
   return authInstance;
 };
 
-export const auth = await getAuth();
+export const auth = getAuth();

@@ -4,8 +4,8 @@ import { WELCOME_EMAIL_TEMPLATE } from './templates';
 export const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.NODEMAILER_EMAIL!,
-    pass: process.env.NODEMAILER_PASSWORD!,
+    user: process.env.NODEMAILER_EMAIL,
+    pass: process.env.NODEMAILER_PASSWORD,
   },
 });
 
@@ -20,7 +20,7 @@ export const sendWelcomeEmail = async ({
   ).replace('{{intro}}', intro);
 
   const mailOptions = {
-    from: `"SeedlingPrime" <leoneidelman09@gmail.com>`,
+    from: `"SeedlingPrime" <${process.env.NODEMAILER_EMAIL}>`,
     to: email,
     subject:
       'Welcome to SeedlingPrime - the place to grow your stock portfolio!',
