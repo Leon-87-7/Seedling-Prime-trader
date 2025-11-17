@@ -40,7 +40,7 @@ export const sendSignUpEmail = inngest.createFunction(
       const part = response.candidates?.[0]?.content?.parts?.[0];
       const introText =
         (part && 'text' in part ? part.text : null) ||
-        'Welcome to Seedling Prime! \nullWe are thrilled to have you on board as you embark on your investment journey with us.\nTrack the market, manage your portfolio, and achieve your financial goals.';
+        'Thanks for joining SeedlingPrime! \nWe are thrilled to have you on board as you embark on your investment journey with us.\nTrack the market, manage your portfolio, and achieve your financial goals.';
 
       const {
         data: { email, name },
@@ -68,7 +68,8 @@ export const sendSignUpEmail = inngest.createFunction(
           eventName: event.name,
           userEmail: email,
           userName: name,
-          error: error instanceof Error ? error.message : String(error),
+          error:
+            error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
           timestamp: new Date().toISOString(),
         });
