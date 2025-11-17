@@ -4,14 +4,18 @@ import FooterLink from '@/components/forms/FooterLink';
 import InputField from '@/components/forms/InputField';
 import SelectField from '@/components/forms/SelectField';
 import { Button } from '@/components/ui/button';
+import { signUpWithEmail } from '@/lib/actions/auth.actions';
 import {
   INVESTMENT_GOALS,
   PREFERRED_INDUSTRIES,
   RISK_TOLERANCE_OPTIONS,
 } from '@/lib/constants';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 function SignUp() {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -29,13 +33,31 @@ function SignUp() {
     },
     mode: 'onBlur',
   });
+
   const onSubmit = async (data: SignUpFormData) => {
     try {
-      console.log(data);
+      const result = await signUpWithEmail(data);
+      if (result.success) {
+        router.push('/');
+      } else {
+        // Handle non-throwing failures
+        console.error('Sign up failed:', result.error);
+        toast.error('Sign up failed', {
+          description: result.error || 'Failed to create an account. Please try again.',
+        });
+      }
     } catch (e) {
+      // Handle thrown exceptions
       console.error(e);
+      toast.error('Sign up failed', {
+        description:
+          e instanceof Error
+            ? e.message
+            : 'Failed to create an account.',
+      });
     }
   };
+
   return (
     <>
       <h1 className="form-title">Sign Up & Personalize</h1>
@@ -111,7 +133,7 @@ function SignUp() {
           required
         />
 
-        {/* <SelectField
+        <SelectField
           name="preferredIndustry"
           label="Preferred Industry"
           placeholder="Select your preferred industry"
@@ -119,7 +141,7 @@ function SignUp() {
           error={errors.preferredIndustry}
           control={control}
           required
-        /> */}
+        />
 
         <Button
           type="submit"
