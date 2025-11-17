@@ -45,11 +45,40 @@ export const sendSignUpEmail = inngest.createFunction(
       const {
         data: { email, name },
       } = event;
-      return await sendWelcomeEmail({
-        email,
-        name,
-        intro: introText,
-      });
+
+      try {
+        const result = await sendWelcomeEmail({
+          email,
+          name,
+          intro: introText,
+        });
+
+        console.log('Welcome email sent via Inngest', {
+          eventId: event.id,
+          userEmail: email,
+          userName: name,
+          messageId: result.messageId,
+          timestamp: new Date().toISOString(),
+        });
+
+        return result;
+      } catch (error) {
+        console.error('Failed to send welcome email via Inngest', {
+          eventId: event.id,
+          eventName: event.name,
+          userEmail: email,
+          userName: name,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          timestamp: new Date().toISOString(),
+        });
+
+        // TODO: Optionally notify support/fallback system here
+        // Example: await notifySupport({ email, error, eventId: event.id });
+
+        // Rethrow to allow Inngest to perform its retry logic
+        throw error;
+      }
     });
 
     return {

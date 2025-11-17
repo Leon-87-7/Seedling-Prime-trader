@@ -28,5 +28,37 @@ export const sendWelcomeEmail = async ({
     html: htmlTemplate,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log('Welcome email sent successfully', {
+      messageId: info.messageId,
+      to: email,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response,
+    });
+
+    return {
+      success: true,
+      messageId: info.messageId,
+      recipient: email,
+    };
+  } catch (error) {
+    console.error('Failed to send welcome email', {
+      recipient: email,
+      recipientName: name,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      mailbox: email,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Rethrow to allow caller to handle the error
+    throw new Error(
+      `Failed to send welcome email to ${email}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
 };
