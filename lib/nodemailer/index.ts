@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer';
-import { WELCOME_EMAIL_TEMPLATE } from './templates';
+import {
+  NEWS_SUMMARY_EMAIL_TEMPLATE,
+  WELCOME_EMAIL_TEMPLATE,
+} from './templates';
 
 export const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -60,5 +63,48 @@ export const sendWelcomeEmail = async ({
         error instanceof Error ? error.message : String(error)
       }`
     );
+  }
+};
+
+export const sendNewsSummaryEmail = async ({
+  email,
+  date,
+  newsContent,
+}: {
+  email: string;
+  date: string;
+  newsContent: string;
+}): Promise<void> => {
+  const htmlTemplate = NEWS_SUMMARY_EMAIL_TEMPLATE.replace(
+    '{{date}}',
+    date
+  ).replace('{{newsContent}}', newsContent);
+
+  const mailOptions = {
+    from: `"SeedlingPrime News" <${process.env.NODEMAILER_EMAIL}>`,
+    to: email,
+    subject: `Market News Summary Today - ${date}`,
+    text: `Today's market news summary from SeedlingPrime`,
+    html: htmlTemplate,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('News summary email sent', {
+      messageId: info.messageId,
+      to: email,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Failed to send news summary email', {
+      recipient: email,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
+    throw error;
   }
 };
