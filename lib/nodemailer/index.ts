@@ -88,5 +88,23 @@ export const sendNewsSummaryEmail = async ({
     html: htmlTemplate,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('News summary email sent', {
+      messageId: info.messageId,
+      to: email,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Failed to send news summary email', {
+      recipient: email,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
+    throw error;
+  }
 };

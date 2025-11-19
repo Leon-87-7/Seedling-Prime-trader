@@ -49,34 +49,42 @@ export async function getNews(
       .filter((s): s is string => Boolean(s));
 
     const maxArticles = 6;
+    // Cap symbols to prevent rate-limit issues and excessive latency
+    const MAX_SYMBOLS = 6;
+    const symbolsToFetch = cleanSymbols.slice(0, MAX_SYMBOLS);
 
     // If we have symbols, try to fetch company news per symbol and round-robin select
-    if (cleanSymbols.length > 0) {
+    if (symbolsToFetch.length > 0) {
       const perSymbolArticles: Record<string, RawNewsArticle[]> = {};
 
-      await Promise.all(
-        cleanSymbols.map(async (sym) => {
-          try {
-            const url = `${FINNHUB_BASE_URL}/company-news?symbol=${encodeURIComponent(sym)}&from=${range.from}&to=${range.to}&token=${token}`;
-            const articles = await fetchJSON<RawNewsArticle[]>(
-              url,
-              300
-            );
-            perSymbolArticles[sym] = (articles || []).filter(
-              validateArticle
-            );
-          } catch (e) {
-            console.error('Error fetching company news for', sym, e);
-            perSymbolArticles[sym] = [];
-          }
-        })
-      );
+      // Process symbols in batches to limit concurrency
+      const BATCH_SIZE = 3;
+      for (let i = 0; i < symbolsToFetch.length; i += BATCH_SIZE) {
+        const batch = symbolsToFetch.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          batch.map(async (sym) => {
+            try {
+              const url = `${FINNHUB_BASE_URL}/company-news?symbol=${encodeURIComponent(sym)}&from=${range.from}&to=${range.to}&token=${token}`;
+              const articles = await fetchJSON<RawNewsArticle[]>(
+                url,
+                300
+              );
+              perSymbolArticles[sym] = (articles || []).filter(
+                validateArticle
+              );
+            } catch (e) {
+              console.error('Error fetching company news for', sym, e);
+              perSymbolArticles[sym] = [];
+            }
+          })
+        );
+      }
 
       const collected: MarketNewsArticle[] = [];
       // Round-robin up to 6 picks
       for (let round = 0; round < maxArticles; round++) {
-        for (let i = 0; i < cleanSymbols.length; i++) {
-          const sym = cleanSymbols[i];
+        for (let i = 0; i < symbolsToFetch.length; i++) {
+          const sym = symbolsToFetch[i];
           const list = perSymbolArticles[sym] || [];
           if (list.length === 0) continue;
           const article = list.shift();
