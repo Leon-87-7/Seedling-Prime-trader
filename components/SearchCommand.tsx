@@ -10,21 +10,25 @@ import {
   CommandItem,
 } from '@/components/ui/command';
 import { Button } from './ui/button';
-import { Loader2, TrendingUp } from 'lucide-react';
+import { Loader2, Star, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
+import { searchStocks } from '@/lib/actions/finnhub.actions';
+import { useDebounce } from '@/app/hooks/useDebounce';
 
-export function SearchCommand({
-  renderAs = button,
+export default function SearchCommand({
+  renderAs = 'button',
   label = 'Add stock',
   initialStocks,
-}) {
+}: SearchCommandProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [stocks, setStocks] = useState(initialStocks);
+  const [stocks, setStocks] =
+    useState<StockWithWatchlistStatus[]>(initialStocks);
 
   const isSearchMode = !!searchTerm.trim();
   const displayStocks = isSearchMode ? stocks : stocks?.slice(0, 10);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -37,9 +41,30 @@ export function SearchCommand({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  const handleSearch = async () => {
+    if (!isSearchMode) return setStocks(initialStocks);
+
+    setLoading(true);
+    try {
+      const results = await searchStocks(searchTerm.trim());
+      setStocks(results);
+    } catch {
+      setStocks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const debouncedSearch = useDebounce(handleSearch, 300);
+
+  useEffect(() => {
+    debouncedSearch();
+  }, [searchTerm]);
+
   const handleSelectStock = () => {
-    console.log(`Selected stock`);
     setOpen(false);
+    setSearchTerm('');
+    setStocks(initialStocks);
   };
 
   return (
@@ -110,6 +135,7 @@ export function SearchCommand({
                         {stock.type}
                       </div>
                     </div>
+                    {/* <Star /> */}
                   </Link>
                 </li>
               ))}
