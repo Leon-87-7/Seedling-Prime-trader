@@ -16,7 +16,7 @@ const Header = async ({ user }: { user: User }) => {
             alt="Seedling Prime trader logo"
             width={140}
             height={32}
-            className="h-8 w-auto cursor-pointer"
+            className="h-12 w-auto cursor-pointer pb-2"
           />
         </Link>
         <nav className="hidden sm:block">
