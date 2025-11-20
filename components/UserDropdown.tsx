@@ -16,7 +16,13 @@ import NavItems from './NavItems';
 import { signOut } from '@/lib/actions/auth.actions';
 import { toast } from 'sonner';
 
-const UserDropdown = ({ user }: { user: User }) => {
+const UserDropdown = ({
+  user,
+  initialStocks,
+}: {
+  user: User;
+  initialStocks: StockWithWatchlistStatus[];
+}) => {
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -26,7 +32,8 @@ const UserDropdown = ({ user }: { user: User }) => {
     if (result?.success === false || result?.error) {
       console.error('Sign out failed:', result?.error);
       toast.error('Sign out failed', {
-        description: result?.error || 'Unable to sign out. Please try again.',
+        description:
+          result?.error || 'Unable to sign out. Please try again.',
       });
       return;
     }
@@ -86,7 +93,7 @@ const UserDropdown = ({ user }: { user: User }) => {
         </DropdownMenuItem>
         <DropdownMenuSeparator className="hidden sm:block bg-gray-600" />
         <nav className="sm:hidden">
-          <NavItems />
+          <NavItems initialStocks={initialStocks} />
         </nav>
       </DropdownMenuContent>
     </DropdownMenu>
