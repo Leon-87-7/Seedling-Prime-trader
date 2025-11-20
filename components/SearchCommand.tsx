@@ -42,16 +42,28 @@ export default function SearchCommand({
   }, []);
 
   const handleSearch = async () => {
-    if (!isSearchMode) return setStocks(initialStocks);
+    const query = searchTerm.trim();
+    const activeSearch = !!query;
+
+    if (!activeSearch) {
+      setStocks(initialStocks);
+      return;
+    }
 
     setLoading(true);
     try {
-      const results = await searchStocks(searchTerm.trim());
-      setStocks(results);
+      const results = await searchStocks(query);
+      if (query === searchTerm.trim()) {
+        setStocks(results);
+      }
     } catch {
-      setStocks([]);
+      if (query === searchTerm.trim()) {
+        setStocks([]);
+      }
     } finally {
-      setLoading(false);
+      if (query === searchTerm.trim()) {
+        setLoading(false);
+      }
     }
   };
 
@@ -59,7 +71,7 @@ export default function SearchCommand({
 
   useEffect(() => {
     debouncedSearch();
-  }, [searchTerm]);
+  }, [searchTerm, debouncedSearch]);
 
   const handleSelectStock = () => {
     setOpen(false);
@@ -73,6 +85,11 @@ export default function SearchCommand({
         <span
           onClick={() => setOpen(true)}
           className="search-text"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') setOpen(true);
+          }}
         >
           {label}
         </span>
