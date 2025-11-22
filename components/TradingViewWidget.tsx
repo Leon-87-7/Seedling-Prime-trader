@@ -28,10 +28,18 @@ const TradingViewWidget = ({
     <div className="w-full relative">
       {isLoading && (
         <div className="absolute inset-0 z-10">
-          <TradingViewWidgetSkeleton height={height} title={title} />
+          <TradingViewWidgetSkeleton
+            height={height}
+            title={title}
+          />
         </div>
       )}
-      <div className={cn(isLoading && 'opacity-0')}>
+      <div
+        className={cn(
+          'transition-opacity duration-300',
+          isLoading ? 'opacity-0' : 'opacity-100'
+        )}
+      >
         {title && (
           <h3 className="mb-5 text-2xl font-semibold text-gray-100 ">
             {title}

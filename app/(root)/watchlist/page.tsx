@@ -28,14 +28,9 @@ export default async function Watchlist() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {watchlistItems.map((item) => {
-              // Format symbol with exchange prefix (e.g., NASDAQ:AAPL)
-              const exchange = item.profile?.exchange || 'NASDAQ';
-              const symbolWithExchange = `${exchange}:${item.symbol}`;
-
               return (
                 <div key={item.symbol}>
                   <TradingViewWidget
-                    // title={`${item.symbol} - ${item.company}`}
                     scriptUrl={`${TRADINGVIEW_SCRIPT_BASE_URL}timeline.js`}
                     config={SYMBOL_TOP_STORIES_WIDGET_CONFIG(
                       item.symbol

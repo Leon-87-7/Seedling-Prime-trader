@@ -220,7 +220,8 @@ export const getBatchStockQuotes = cache(
     if (!symbols || symbols.length === 0) return resultMap;
 
     try {
-      const token = NEXT_PUBLIC_FINNHUB_API_KEY;
+      const token =
+        process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
       if (!token) {
         console.error('FINNHUB API key is not configured');
         return resultMap;
@@ -288,7 +289,8 @@ export const getBatchStockProfiles = cache(
     if (!symbols || symbols.length === 0) return resultMap;
 
     try {
-      const token = NEXT_PUBLIC_FINNHUB_API_KEY;
+      const token =
+        process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
       if (!token) {
         console.error('FINNHUB API key is not configured');
         return resultMap;
@@ -354,7 +356,8 @@ export const getBatchStockMetrics = cache(
     if (!symbols || symbols.length === 0) return resultMap;
 
     try {
-      const token = NEXT_PUBLIC_FINNHUB_API_KEY;
+      const token =
+        process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
       if (!token) {
         console.error('FINNHUB API key is not configured');
         return resultMap;

@@ -173,12 +173,16 @@ export default function WatchlistTable({
       </TableHeader>
       <TableBody>
         {sortedItems.map((item) => {
-          const price = item.quote?.currentPrice
-            ? formatPrice(item.quote.currentPrice)
-            : '-';
-          const change = item.quote?.percentChange
-            ? formatChangePercent(item.quote.percentChange)
-            : '-';
+          const price =
+            item.quote?.currentPrice !== null &&
+            item.quote?.currentPrice !== undefined
+              ? formatPrice(item.quote.currentPrice)
+              : '-';
+          const change =
+            item.quote?.percentChange !== null &&
+            item.quote?.percentChange !== undefined
+              ? formatChangePercent(item.quote.percentChange)
+              : '-';
           const changeColor = getChangeColorClass(
             item.quote?.percentChange
           );
@@ -191,7 +195,10 @@ export default function WatchlistTable({
               ? item.metrics.peRatio.toFixed(2)
               : '-';
           const weekRange =
-            item.metrics?.weekLow52 && item.metrics?.weekHigh52
+            item.metrics?.weekLow52 !== null &&
+            item.metrics?.weekLow52 !== undefined &&
+            item.metrics?.weekHigh52 !== null &&
+            item.metrics?.weekHigh52 !== undefined
               ? `${formatPrice(item.metrics.weekLow52)} - ${formatPrice(item.metrics.weekHigh52)}`
               : '-';
 

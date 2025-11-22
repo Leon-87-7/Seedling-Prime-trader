@@ -15,6 +15,8 @@ const useTradingViewWidget = (
 
     setIsLoading(true);
 
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const script = document.createElement('script');
     script.src = scriptUrl;
     script.async = true;
@@ -22,7 +24,7 @@ const useTradingViewWidget = (
 
     script.onload = () => {
       // Give the widget a moment to render
-      setTimeout(() => setIsLoading(false), 1000);
+      timeoutId = setTimeout(() => setIsLoading(false), 1000);
     };
 
     script.onerror = () => {
@@ -33,6 +35,9 @@ const useTradingViewWidget = (
     containerRef.current.dataset.loaded = 'true';
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
         delete containerRef.current.dataset.loaded;
