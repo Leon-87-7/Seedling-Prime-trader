@@ -4,6 +4,7 @@ import { connectToDatabase } from '@/database/mongoose';
 import Watchlist from '@/database/models/watchlist.model';
 import { getAuth } from '@/lib/better-auth/auth';
 import { headers } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 
 /**
  * Get watchlist symbols for a user by their email
@@ -138,6 +139,11 @@ export const addToWatchlist = async (
       addedAt: new Date(),
     });
 
+    // Revalidate all pages that might show watchlist data
+    revalidatePath('/', 'layout'); // Revalidate all pages
+    revalidatePath('/watchlist');
+    revalidatePath(`/stocks/${symbol.toUpperCase()}`);
+
     return { success: true, message: 'Added to watchlist' };
   } catch (error) {
     console.error('Error adding to watchlist:', error);
@@ -162,6 +168,11 @@ export const removeFromWatchlist = async (symbol: string) => {
       userId: user.id,
       symbol: symbol.toUpperCase(),
     });
+
+    // Revalidate all pages that might show watchlist data
+    revalidatePath('/', 'layout'); // Revalidate all pages
+    revalidatePath('/watchlist');
+    revalidatePath(`/stocks/${symbol.toUpperCase()}`);
 
     return { success: true, message: 'Removed from watchlist' };
   } catch (error) {

@@ -37,6 +37,10 @@ export const CONDITION_OPTIONS = [
 ];
 
 // TradingView Charts
+
+export const TRADINGVIEW_SCRIPT_BASE_URL =
+  'https://s3.tradingview.com/external-embedding/embed-widget-';
+
 export const MARKET_OVERVIEW_WIDGET_CONFIG = {
   colorTheme: 'dark', // dark mode
   dateRange: '12M', // last 12 months
@@ -345,13 +349,52 @@ export const ECONOMIC_CALENDAR_WIDGET_CONFIG = {
   importanceFilter: '-1,0,1', // Show all importance levels (low, medium, high)
 };
 
-export const SYMBOL_TOP_STORIES_WIDGET_CONFIG = (symbol: string) => ({
-  feedMode: 'symbol',
-  symbol: symbol,
-  isTransparent: true,
-  displayMode: 'regular',
-  colorTheme: 'dark',
-  locale: 'en',
-  width: '100%',
-  height: 400,
-});
+// Helper function to convert full exchange name to TradingView short code
+export const normalizeExchangeName = (exchangeName: string): string => {
+  const upperExchange = exchangeName.toUpperCase();
+
+  // Map of full exchange names to TradingView codes
+  const exchangeMap: Record<string, string> = {
+    'NEW YORK STOCK EXCHANGE': 'NYSE',
+    'NEW YORK STOCK EXCHANGE, INC.': 'NYSE',
+    'NYSE': 'NYSE',
+    'NASDAQ GLOBAL SELECT': 'NASDAQ',
+    'NASDAQ GLOBAL MARKET': 'NASDAQ',
+    'NASDAQ CAPITAL MARKET': 'NASDAQ',
+    'NASDAQ': 'NASDAQ',
+    'AMEX': 'AMEX',
+    'AMERICAN STOCK EXCHANGE': 'AMEX',
+    'BATS': 'BATS',
+    'OTC': 'OTC',
+    'OTCQB': 'OTC',
+    'OTCQX': 'OTC',
+  };
+
+  // Try exact match first
+  if (exchangeMap[upperExchange]) {
+    return exchangeMap[upperExchange];
+  }
+
+  // Try partial match
+  for (const [key, value] of Object.entries(exchangeMap)) {
+    if (upperExchange.includes(key)) {
+      return value;
+    }
+  }
+
+  // Default to NYSE if unknown
+  return 'NYSE';
+};
+
+export const SYMBOL_TOP_STORIES_WIDGET_CONFIG = (symbol: string) => {
+  return {
+    feedMode: 'symbol',
+    symbol: symbol,
+    isTransparent: true,
+    displayMode: 'regular',
+    colorTheme: 'dark',
+    locale: 'en',
+    width: '100%',
+    height: 400,
+  };
+};

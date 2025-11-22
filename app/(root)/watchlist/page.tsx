@@ -4,10 +4,9 @@ import { getUserWatchlist } from '@/lib/actions/watchlist.actions';
 import {
   ECONOMIC_CALENDAR_WIDGET_CONFIG,
   SYMBOL_TOP_STORIES_WIDGET_CONFIG,
+  TRADINGVIEW_SCRIPT_BASE_URL,
+  normalizeExchangeName,
 } from '@/lib/constants';
-
-const TRADINGVIEW_SCRIPT_BASE_URL =
-  'https://s3.tradingview.com/external-embedding/embed-widget-';
 
 export default async function Watchlist() {
   const watchlistItems = await getUserWatchlist();
@@ -28,12 +27,18 @@ export default async function Watchlist() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {watchlistItems.map((item) => {
+              // Format symbol with exchange prefix (e.g., NASDAQ:AAPL)
+              const exchangeName = item.profile?.exchange || 'NASDAQ';
+              const normalizedExchange =
+                normalizeExchangeName(exchangeName);
+              const symbolWithExchange = `${normalizedExchange}:${item.symbol}`;
+
               return (
                 <div key={item.symbol}>
                   <TradingViewWidget
                     scriptUrl={`${TRADINGVIEW_SCRIPT_BASE_URL}timeline.js`}
                     config={SYMBOL_TOP_STORIES_WIDGET_CONFIG(
-                      item.symbol
+                      symbolWithExchange
                     )}
                     height={400}
                   />

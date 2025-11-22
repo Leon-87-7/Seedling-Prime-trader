@@ -411,9 +411,14 @@ export const getBatchStockMetrics = cache(
   }
 );
 
-export const searchStocks = cache(
-  async (query?: string): Promise<StockWithWatchlistStatus[]> => {
+export async function searchStocks(
+  query?: string
+): Promise<StockWithWatchlistStatus[]> {
     try {
+      // Force dynamic rendering - don't cache this function's results
+      const { unstable_noStore } = await import('next/cache');
+      unstable_noStore();
+
       const token =
         process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
       if (!token) {
@@ -425,15 +430,51 @@ export const searchStocks = cache(
         return [];
       }
 
+      // Get user's watchlist symbols to mark them and optionally display them first
+      const { getAuth } = await import('@/lib/better-auth/auth');
+      const { headers } = await import('next/headers');
+      const { getUserWatchlist } = await import('@/lib/actions/watchlist.actions');
+
+      let watchlistSymbols: string[] = [];
+      let watchlistItems: Awaited<ReturnType<typeof getUserWatchlist>> = [];
+
+      try {
+        const auth = await getAuth();
+        const session = await auth.api.getSession({
+          headers: await headers(),
+        });
+
+        if (session?.user) {
+          watchlistItems = await getUserWatchlist();
+          watchlistSymbols = watchlistItems.map(item => item.symbol.toUpperCase());
+        }
+      } catch (err) {
+        // User not logged in or error fetching watchlist - continue without it
+        console.log('No user session or error fetching watchlist:', err);
+      }
+
+      const watchlistSet = new Set(watchlistSymbols);
       const trimmed = typeof query === 'string' ? query.trim() : '';
 
       let results: FinnhubSearchResult[] = [];
 
       if (!trimmed) {
-        // Fetch top 10 popular symbols' profiles
-        const top = POPULAR_STOCK_SYMBOLS.slice(0, 10);
+        // When no query, show watchlist items first, then popular stocks
+        const watchlistResults: FinnhubSearchResult[] = watchlistItems.map(item => ({
+          symbol: item.symbol,
+          description: item.company,
+          displaySymbol: item.symbol,
+          type: 'Common Stock',
+          __exchange: item.profile?.exchange,
+        } as FinnhubSearchResult & { __exchange?: string }));
+
+        // Fetch popular stocks (excluding already shown watchlist items)
+        const popularSymbols = POPULAR_STOCK_SYMBOLS
+          .filter(sym => !watchlistSet.has(sym.toUpperCase()))
+          .slice(0, 10);
+
         const profiles = await Promise.all(
-          top.map(async (sym) => {
+          popularSymbols.map(async (sym) => {
             try {
               const url = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${encodeURIComponent(sym)}&token=${token}`;
               // Revalidate every hour
@@ -446,7 +487,7 @@ export const searchStocks = cache(
           })
         );
 
-        results = profiles
+        const popularResults = profiles
           .map(({ sym, profile }) => {
             const symbol = sym.toUpperCase();
             const name: string | undefined =
@@ -464,6 +505,9 @@ export const searchStocks = cache(
             return r;
           })
           .filter((x): x is FinnhubSearchResult => Boolean(x));
+
+        // Watchlist items first, then popular stocks
+        results = [...watchlistResults, ...popularResults];
       } else {
         const url = `${FINNHUB_BASE_URL}/search?q=${encodeURIComponent(trimmed)}&token=${token}`;
         const data = await fetchJSON<FinnhubSearchResponse>(
@@ -488,16 +532,15 @@ export const searchStocks = cache(
             name,
             exchange,
             type,
-            isInWatchlist: false,
+            isInWatchlist: watchlistSet.has(upper),
           };
           return item;
         })
-        .slice(0, 15);
+        .slice(0, 20); // Increased limit to accommodate watchlist + popular stocks
 
       return mapped;
     } catch (err) {
       console.error('Error in stock search:', err);
       return [];
     }
-  }
-);
+}

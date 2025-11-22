@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -48,9 +49,23 @@ type SortDirection = 'asc' | 'desc' | null;
 export default function WatchlistTable({
   items,
 }: WatchlistTableProps) {
+  const router = useRouter();
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] =
     useState<SortDirection>(null);
+  const [localItems, setLocalItems] = useState<WatchlistItem[]>(items);
+
+  // Update local items when props change
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
+
+  const handleWatchlistChange = (symbol: string, isAdded: boolean) => {
+    if (!isAdded) {
+      // Remove item from local state immediately
+      setLocalItems(prev => prev.filter(item => item.symbol !== symbol));
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -68,9 +83,9 @@ export default function WatchlistTable({
   };
 
   const sortedItems = useMemo(() => {
-    if (!items || !sortField || !sortDirection) return items || [];
+    if (!localItems || !sortField || !sortDirection) return localItems || [];
 
-    return [...items].sort((a, b) => {
+    return [...localItems].sort((a, b) => {
       let aValue: number | string = 0;
       let bValue: number | string = 0;
 
@@ -101,7 +116,7 @@ export default function WatchlistTable({
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [items, sortField, sortDirection]);
+  }, [localItems, sortField, sortDirection]);
 
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) {
@@ -130,13 +145,13 @@ export default function WatchlistTable({
       case 'P/E Ratio':
         return { field: 'peRatio', sortable: true };
       case '52 Week Range':
-        return { field: 'company', sortable: false }; // Non-sortable
+        return { field: null as any, sortable: false }; // Non-sortable
       default:
         return null;
     }
   };
 
-  if (!items || items.length === 0) {
+  if (!localItems || localItems.length === 0) {
     return (
       <div className="text-center py-12 text-gray-400">
         <p className="text-lg">Your watchlist is empty</p>
@@ -203,14 +218,22 @@ export default function WatchlistTable({
               : '-';
 
           return (
-            <TableRow key={item.symbol}>
-              <TableCell className="text-left table-cell">
+            <TableRow
+              key={item.symbol}
+              className="cursor-pointer hover:bg-gray-800/50 transition-colors"
+              onClick={() => router.push(`/stocks/${item.symbol}`)}
+            >
+              <TableCell
+                className="text-left table-cell"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <WatchlistButton
                   symbol={item.symbol}
                   company={item.company}
                   isInWatchlist={true}
                   showTrashIcon={false}
                   type="icon"
+                  onWatchlistChange={handleWatchlistChange}
                 />
               </TableCell>
               <TableCell className="text-left">

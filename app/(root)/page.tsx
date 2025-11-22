@@ -4,10 +4,9 @@ import {
   MARKET_DATA_WIDGET_CONFIG,
   MARKET_OVERVIEW_WIDGET_CONFIG,
   TOP_STORIES_WIDGET_CONFIG,
+  TRADINGVIEW_SCRIPT_BASE_URL,
 } from '@/lib/constants';
 
-const TRADINGVIEW_SCRIPT_BASE_URL =
-  'https://s3.tradingview.com/external-embedding/embed-widget-';
 const Home = () => {
   return (
     <div className="flex min-h-screen home-wrapper">

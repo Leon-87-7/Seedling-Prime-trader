@@ -7,11 +7,9 @@ import {
   TECHNICAL_ANALYSIS_WIDGET_CONFIG,
   COMPANY_PROFILE_WIDGET_CONFIG,
   COMPANY_FINANCIALS_WIDGET_CONFIG,
+  TRADINGVIEW_SCRIPT_BASE_URL,
 } from '@/lib/constants';
 import { checkWatchlistStatus } from '@/lib/actions/watchlist.actions';
-
-const TRADINGVIEW_SCRIPT_BASE_URL =
-  'https://s3.tradingview.com/external-embedding/embed-widget-';
 
 export default async function StockDetails({
   params,
@@ -65,14 +63,14 @@ export default async function StockDetails({
             height={400}
           />
           <TradingViewWidget
-            scriptUrl={`${TRADINGVIEW_SCRIPT_BASE_URL}symbol-profile.js`}
-            config={COMPANY_PROFILE_WIDGET_CONFIG(symbol)}
-            height={440}
-          />
-          <TradingViewWidget
             scriptUrl={`${TRADINGVIEW_SCRIPT_BASE_URL}financials.js`}
             config={COMPANY_FINANCIALS_WIDGET_CONFIG(symbol)}
             height={464}
+          />
+          <TradingViewWidget
+            scriptUrl={`${TRADINGVIEW_SCRIPT_BASE_URL}symbol-profile.js`}
+            config={COMPANY_PROFILE_WIDGET_CONFIG(symbol)}
+            height={440}
           />
         </div>
       </div>
