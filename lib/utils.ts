@@ -120,7 +120,7 @@ export const formatChangePercent = (changePercent?: number) => {
 export const getChangeColorClass = (changePercent?: number) => {
   if (changePercent === undefined || changePercent === null)
     return 'text-gray-400';
-  return changePercent > 0 ? 'text-green-500' : 'text-red-500';
+  return changePercent > 0 ? 'text-emerald-500' : 'text-rose-500';
 };
 
 export const formatPrice = (price: number) => {

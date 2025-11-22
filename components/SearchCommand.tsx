@@ -7,11 +7,14 @@ import {
   CommandList,
   CommandEmpty,
 } from '@/components/ui/command';
+import { Item, ItemMedia } from '@/components/ui/item';
+import { Spinner } from '@/components/ui/spinner';
 import { Button } from './ui/button';
-import { Loader2, Star, TrendingUp } from 'lucide-react';
+import { Loader2, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { searchStocks } from '@/lib/actions/finnhub.actions';
 import { useDebounce } from '@/app/hooks/useDebounce';
+import WatchlistButton from './WatchlistButton';
 
 export default function SearchCommand({
   renderAs = 'button',
@@ -25,7 +28,12 @@ export default function SearchCommand({
     useState<StockWithWatchlistStatus[]>(initialStocks);
 
   const isSearchMode = !!searchTerm.trim();
-  const displayStocks = isSearchMode ? stocks : stocks?.slice(0, 10);
+
+  // Separate watchlist items from other stocks
+  const watchlistStocks = stocks.filter(stock => stock.isInWatchlist);
+  const otherStocks = stocks.filter(stock => !stock.isInWatchlist);
+
+  const displayStocks = isSearchMode ? stocks : stocks;
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -77,6 +85,20 @@ export default function SearchCommand({
     setStocks(initialStocks);
   };
 
+  const handleWatchlistChange = (
+    symbol: string,
+    isAdded: boolean
+  ) => {
+    // Update the local stocks state to reflect watchlist change
+    setStocks((prevStocks) =>
+      prevStocks.map((stock) =>
+        stock.symbol === symbol
+          ? { ...stock, isInWatchlist: isAdded }
+          : stock
+      )
+    );
+  };
+
   return (
     <>
       {renderAs === 'text' ? (
@@ -111,7 +133,7 @@ export default function SearchCommand({
             onValueChange={setSearchTerm}
             className="search-input"
           />
-          {loading && <Loader2 className="search-loa" />}
+          {loading && <Spinner />}
         </div>
         <CommandList className="search-list">
           {loading ? (
@@ -126,34 +148,120 @@ export default function SearchCommand({
             </div>
           ) : (
             <ul>
-              <div className="search-count">
-                {isSearchMode ? 'Search results' : 'Popular stocks'}({' '}
-                {displayStocks?.length || 0})
-              </div>
-              {displayStocks?.map((stock, i) => (
-                <li
-                  key={stock.symbol}
-                  className="search-item"
-                >
-                  <Link
-                    href={`/stocks/${stock.symbol}`}
-                    onClick={handleSelectStock}
-                    className="search-item-link"
-                  >
-                    <TrendingUp className="h-4 w-4 text-gray-500" />
-                    <div className="flex-1">
-                      <div className="search-item-name">
-                        {stock.name}
+              {isSearchMode ? (
+                <>
+                  <div className="search-count">
+                    Search results ({displayStocks?.length || 0})
+                  </div>
+                  {displayStocks?.map((stock) => (
+                    <li
+                      key={stock.symbol}
+                      className="search-item"
+                    >
+                      <Link
+                        href={`/stocks/${stock.symbol}`}
+                        onClick={handleSelectStock}
+                        className="search-item-link"
+                      >
+                        <TrendingUp className="h-4 w-4 text-gray-500" />
+                        <div className="flex-1">
+                          <div className="search-item-name">
+                            {stock.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {stock.symbol} | {stock.exchange} |{' '}
+                            {stock.type}
+                          </div>
+                        </div>
+                        <WatchlistButton
+                          symbol={stock.symbol}
+                          company={stock.name}
+                          isInWatchlist={stock.isInWatchlist}
+                          onWatchlistChange={handleWatchlistChange}
+                          type="icon"
+                        />
+                      </Link>
+                    </li>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {watchlistStocks.length > 0 && (
+                    <>
+                      <div className="search-count">
+                        Your Watchlist ({watchlistStocks.length})
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {stock.symbol} | {stock.exchange} |{' '}
-                        {stock.type}
+                      {watchlistStocks.map((stock) => (
+                        <li
+                          key={stock.symbol}
+                          className="search-item"
+                        >
+                          <Link
+                            href={`/stocks/${stock.symbol}`}
+                            onClick={handleSelectStock}
+                            className="search-item-link"
+                          >
+                            <TrendingUp className="h-4 w-4 text-gray-500" />
+                            <div className="flex-1">
+                              <div className="search-item-name">
+                                {stock.name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {stock.symbol} | {stock.exchange} |{' '}
+                                {stock.type}
+                              </div>
+                            </div>
+                            <WatchlistButton
+                              symbol={stock.symbol}
+                              company={stock.name}
+                              isInWatchlist={stock.isInWatchlist}
+                              onWatchlistChange={handleWatchlistChange}
+                              type="icon"
+                            />
+                          </Link>
+                        </li>
+                      ))}
+                    </>
+                  )}
+                  {otherStocks.length > 0 && (
+                    <>
+                      <div className="search-count">
+                        Popular stocks ({otherStocks.length})
                       </div>
-                    </div>
-                    {/* <Star /> */}
-                  </Link>
-                </li>
-              ))}
+                      {otherStocks.map((stock) => (
+                        <li
+                          key={stock.symbol}
+                          className="search-item"
+                        >
+                          <Link
+                            href={`/stocks/${stock.symbol}`}
+                            onClick={handleSelectStock}
+                            className="search-item-link"
+                          >
+                            <TrendingUp className="h-4 w-4 text-gray-500" />
+                            <div className="flex-1">
+                              <div className="search-item-name">
+                                {stock.name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {stock.symbol} | {stock.exchange} |{' '}
+                                {stock.type}
+                              </div>
+                            </div>
+                            <WatchlistButton
+                              symbol={stock.symbol}
+                              company={stock.name}
+                              isInWatchlist={stock.isInWatchlist}
+                              onWatchlistChange={handleWatchlistChange}
+                              type="icon"
+                            />
+                          </Link>
+                        </li>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
             </ul>
           )}
         </CommandList>
