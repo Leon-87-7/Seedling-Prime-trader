@@ -380,12 +380,12 @@ export const getBatchStockMetrics = cache(
             }
 
             const data: StockMetricsData = {
-              peRatio: response.metric.peBasicExclExtraTTM || null,
-              eps: response.metric.epsBasicExclExtraItemsTTM || null,
-              dividendYield: response.metric.dividendYieldIndicatedAnnual || null,
-              beta: response.metric.beta || null,
-              weekHigh52: response.metric['52WeekHigh'] || null,
-              weekLow52: response.metric['52WeekLow'] || null,
+              peRatio: response.metric.peBasicExclExtraTTM ?? null,
+              eps: response.metric.epsBasicExclExtraItemsTTM ?? null,
+              dividendYield: response.metric.dividendYieldIndicatedAnnual ?? null,
+              beta: response.metric.beta ?? null,
+              weekHigh52: response.metric['52WeekHigh'] ?? null,
+              weekLow52: response.metric['52WeekLow'] ?? null,
             };
 
             return { symbol, data };
