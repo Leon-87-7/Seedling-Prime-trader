@@ -1,13 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   CommandDialog,
   CommandInput,
   CommandList,
   CommandEmpty,
-  CommandGroup,
-  CommandItem,
 } from '@/components/ui/command';
 import { Button } from './ui/button';
 import { Loader2, Star, TrendingUp } from 'lucide-react';
@@ -41,7 +39,7 @@ export default function SearchCommand({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     const query = searchTerm.trim();
     const activeSearch = !!query;
 
@@ -65,7 +63,7 @@ export default function SearchCommand({
         setLoading(false);
       }
     }
-  };
+  }, [searchTerm, initialStocks]);
 
   const debouncedSearch = useDebounce(handleSearch, 300);
 
@@ -103,7 +101,7 @@ export default function SearchCommand({
       )}
       <CommandDialog
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={handleSelectStock}
         className="search-dialog"
       >
         <div className="search-field">
