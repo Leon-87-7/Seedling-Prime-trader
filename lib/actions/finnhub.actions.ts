@@ -82,6 +82,8 @@ export interface StockMetricsData {
   eps: number | null;
   dividendYield: number | null;
   beta: number | null;
+  weekHigh52: number | null;
+  weekLow52: number | null;
 }
 
 async function fetchJSON<T>(
@@ -379,6 +381,8 @@ export const getBatchStockMetrics = cache(
               eps: response.metric.epsBasicExclExtraItemsTTM || null,
               dividendYield: response.metric.dividendYieldIndicatedAnnual || null,
               beta: response.metric.beta || null,
+              weekHigh52: response.metric['52WeekHigh'] || null,
+              weekLow52: response.metric['52WeekLow'] || null,
             };
 
             return { symbol, data };

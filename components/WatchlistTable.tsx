@@ -129,7 +129,7 @@ export default function WatchlistTable({
         return { field: 'marketCap', sortable: true };
       case 'P/E Ratio':
         return { field: 'peRatio', sortable: true };
-      case 'Alert':
+      case '52 Week Range':
         return { field: 'company', sortable: false }; // Non-sortable
       default:
         return null;
@@ -148,9 +148,9 @@ export default function WatchlistTable({
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
+    <Table className="watchlist-table">
+      <TableHeader className="table-header-row">
+        <TableRow className="table-row">
           <TableHead className="text-left "></TableHead>
           {WATCHLIST_TABLE_HEADER.map((header) => {
             const config = getHeaderConfig(header);
@@ -190,10 +190,14 @@ export default function WatchlistTable({
             item.metrics?.peRatio !== undefined
               ? item.metrics.peRatio.toFixed(2)
               : '-';
+          const weekRange =
+            item.metrics?.weekLow52 && item.metrics?.weekHigh52
+              ? `${formatPrice(item.metrics.weekLow52)} - ${formatPrice(item.metrics.weekHigh52)}`
+              : '-';
 
           return (
             <TableRow key={item.symbol}>
-              <TableCell className="text-left">
+              <TableCell className="text-left table-cell">
                 <WatchlistButton
                   symbol={item.symbol}
                   company={item.company}
@@ -207,13 +211,15 @@ export default function WatchlistTable({
                 <span className="text-gray-400"> | </span>
                 <span>{item.company}</span>
               </TableCell>
-              <TableCell className="text-left">{price}</TableCell>
+              <TableCell className="text-left table-cell ">
+                {price}
+              </TableCell>
               <TableCell className={`text-left ${changeColor}`}>
                 {change}
               </TableCell>
               <TableCell className="text-left">{marketCap}</TableCell>
               <TableCell className="text-left">{peRatio}</TableCell>
-              <TableCell className="text-left">-</TableCell>
+              <TableCell className="text-left">{weekRange}</TableCell>
             </TableRow>
           );
         })}

@@ -333,5 +333,25 @@ export const WATCHLIST_TABLE_HEADER = [
   'Change',
   'Market Cap',
   'P/E Ratio',
-  'Alert',
+  '52 Week Range',
 ];
+
+export const ECONOMIC_CALENDAR_WIDGET_CONFIG = {
+  colorTheme: 'dark',
+  isTransparent: true,
+  width: '100%',
+  height: 500,
+  locale: 'en',
+  importanceFilter: '-1,0,1', // Show all importance levels (low, medium, high)
+};
+
+export const SYMBOL_TOP_STORIES_WIDGET_CONFIG = (symbol: string) => ({
+  feedMode: 'symbol',
+  symbol: symbol,
+  isTransparent: true,
+  displayMode: 'regular',
+  colorTheme: 'dark',
+  locale: 'en',
+  width: '100%',
+  height: 400,
+});
