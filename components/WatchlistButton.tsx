@@ -9,6 +9,7 @@ import {
   removeFromWatchlist,
 } from '@/lib/actions/watchlist.actions';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function WatchlistButton({
   symbol,
@@ -29,14 +30,26 @@ export default function WatchlistButton({
           await removeFromWatchlist(symbol);
           setIsAdded(false);
           onWatchlistChange?.(symbol, false);
+          toast.success(`${symbol} removed from watchlist`, {
+            description: `${company} has been removed from your watchlist.`,
+          });
         } else {
           await addToWatchlist(symbol, company);
           setIsAdded(true);
           onWatchlistChange?.(symbol, true);
+          toast.success(`${symbol} added to watchlist`, {
+            description: `${company} has been added to your watchlist.`,
+          });
         }
         router.refresh();
       } catch (error) {
         console.error('Failed to update watchlist:', error);
+        toast.error('Failed to update watchlist', {
+          description: 'Please try again later.',
+        });
+        // Revert optimistic update on error
+        setIsAdded(!isAdded);
+        onWatchlistChange?.(symbol, !isAdded);
       }
     });
   };
