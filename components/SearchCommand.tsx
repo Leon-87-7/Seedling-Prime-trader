@@ -150,7 +150,7 @@ export default function SearchCommand({
                         {stock.type}
                       </div>
                     </div>
-                    {/* <Star /> */}
+                    <Star />
                   </Link>
                 </li>
               ))}
