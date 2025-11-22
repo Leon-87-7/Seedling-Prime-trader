@@ -169,3 +169,63 @@ export const removeFromWatchlist = async (symbol: string) => {
     throw error;
   }
 };
+
+/**
+ * Get all watchlist items for the current user with real-time stock data
+ * @returns Array of watchlist items with company, symbol, and stock data
+ */
+export const getUserWatchlist = async () => {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return [];
+    }
+
+    await connectToDatabase();
+
+    const watchlistItems = await Watchlist.find({ userId: user.id })
+      .sort({ addedAt: -1 })
+      .lean();
+
+    if (watchlistItems.length === 0) {
+      return [];
+    }
+
+    // Import the batch functions dynamically to avoid circular dependencies
+    const {
+      getBatchStockQuotes,
+      getBatchStockProfiles,
+      getBatchStockMetrics,
+    } = await import('@/lib/actions/finnhub.actions');
+
+    // Extract symbols
+    const symbols = watchlistItems.map((item) => String(item.symbol));
+
+    // Fetch stock data in parallel (batch call)
+    const [quotesMap, profilesMap, metricsMap] = await Promise.all([
+      getBatchStockQuotes(symbols),
+      getBatchStockProfiles(symbols),
+      getBatchStockMetrics(symbols),
+    ]);
+
+    // Combine watchlist items with stock data
+    return watchlistItems.map((item) => {
+      const symbol = String(item.symbol);
+      const quote = quotesMap.get(symbol);
+      const profile = profilesMap.get(symbol);
+      const metrics = metricsMap.get(symbol);
+
+      return {
+        symbol,
+        company: String(item.company),
+        addedAt: item.addedAt,
+        quote: quote || null,
+        profile: profile || null,
+        metrics: metrics || null,
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching user watchlist:', error);
+    return [];
+  }
+};

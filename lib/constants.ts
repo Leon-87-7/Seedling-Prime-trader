@@ -1,7 +1,7 @@
 export const NAV_ITEMS = [
   { href: '/', label: 'Dashboard' },
   { href: '/search', label: 'Search' },
-  // { href: '/watchlist', label: 'Watchlist' },
+  { href: '/watchlist', label: 'Watchlist' },
 ];
 
 // Sign-up form select options
@@ -238,7 +238,7 @@ export const TECHNICAL_ANALYSIS_WIDGET_CONFIG = (symbol: string) => ({
   locale: 'en',
   width: '100%',
   height: 400,
-  interval: '1h',
+  interval: '4h',
   largeChartUrl: '',
 });
 
@@ -329,11 +329,9 @@ export const NO_MARKET_NEWS =
 
 export const WATCHLIST_TABLE_HEADER = [
   'Company',
-  'Symbol',
   'Price',
   'Change',
   'Market Cap',
   'P/E Ratio',
   'Alert',
-  'Action',
 ];
