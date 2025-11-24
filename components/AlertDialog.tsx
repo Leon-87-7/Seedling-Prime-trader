@@ -36,19 +36,6 @@ interface AlertDialogProps {
   onAlertsChange?: () => void;
 }
 
-interface Alert {
-  id: string;
-  symbol: string;
-  company: string;
-  alertType: AlertType;
-  targetPrice?: number;
-  volumeMultiplier?: number;
-  isActive: boolean;
-  isTriggered: boolean;
-  triggeredAt?: Date;
-  createdAt: Date;
-}
-
 export default function AlertDialog({
   symbol,
   company,

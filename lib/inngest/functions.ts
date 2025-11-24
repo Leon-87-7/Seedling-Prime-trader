@@ -15,7 +15,11 @@ import {
   getActiveAlerts,
   markAlertAsTriggered,
 } from '../actions/alert.actions';
-import { getNews, getBatchStockQuotes } from '../actions/finnhub.actions';
+import {
+  getNews,
+  getBatchStockQuotes,
+  type StockQuoteData,
+} from '../actions/finnhub.actions';
 import { formatDateToday, formatPrice } from '../utils';
 import { connectToDatabase } from '@/database/mongoose';
 
@@ -33,8 +37,8 @@ export const sendSignUpEmail = inngest.createFunction(
       -country: ${event.data.country}
       -investment goals: ${event.data.investmentGoals}
       -risk tolerance: ${event.data.riskTolerance}
-      -preferred industry: ${event.data.preferredIndustry}  
-    `;
+      -preferred industry: ${event.data.preferredIndustry}
+      `;
 
     const prompt = PERSONALIZED_WELCOME_EMAIL_PROMPT.replace(
       '{{userProfile}}',
@@ -247,23 +251,6 @@ export const sendDailyNewsSummary = inngest.createFunction(
   }
 );
 
-/**
- * Scheduled function to check stock alerts and send notifications
- *
- * This function can be triggered in two ways:
- * 1. Event-based: When 'app/check.stock.alerts' event is sent
- * 2. Time-based: Automatically runs every 15 minutes during market hours
- *
- * Cron Schedule: '0,15,30,45 9-16 * * 1-5'
- * - Runs at minutes 0, 15, 30, 45 of each hour
- * - Between hours 9 AM and 4 PM (9:00-16:59)
- * - Every day of the month
- * - Every month
- * - Monday through Friday (1-5)
- * Result: Executes every 15 minutes during market hours on weekdays
- *
- * For testing, you can also trigger manually via the event 'app/check.stock.alerts'
- */
 export const checkStockAlerts = inngest.createFunction(
   { id: 'check-stock-alerts' },
   [
@@ -293,10 +280,10 @@ export const checkStockAlerts = inngest.createFunction(
     // Step #3: Fetch current stock data for all symbols
     const stockDataMap = await step.run(
       'fetch-stock-data',
-      async () => {
+      async (): Promise<Map<string, StockQuoteData>> => {
         return await getBatchStockQuotes(symbolsToCheck);
       }
-    );
+    ) as Map<string, StockQuoteData>;
 
     // Step #4: Check each alert and trigger if conditions are met
     const triggeredAlerts: Array<{
@@ -347,6 +334,16 @@ export const checkStockAlerts = inngest.createFunction(
           targetPrice: alert.targetPrice,
         });
       }
+    }
+
+    if (triggeredAlerts.length === 0) {
+      return {
+        success: true,
+        message: 'Stock alerts checked; no alerts triggered',
+        alertsChecked: alerts.length,
+        alertsTriggered: 0,
+        emailResults: [],
+      };
     }
 
     // Step #5: Send email notifications for triggered alerts
