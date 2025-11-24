@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Table,
@@ -83,69 +83,59 @@ export default function WatchlistTable({
     setLocalItems(items);
   }, [items]);
 
-  // Load alerts for all symbols
-  useEffect(() => {
-    loadAllAlerts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
-
-  const loadAllAlerts = async () => {
-    // Run all API calls in parallel
-    const alertPromises = items.map((item) =>
-      getAlertsBySymbol(item.symbol).then(
-        (alerts) => ({ symbol: item.symbol, alerts, error: null }),
-        (error) => ({ symbol: item.symbol, alerts: null, error })
-      )
+  const loadAllAlerts = useCallback(async () => {
+    const results = await Promise.all(
+      items.map(async (item) => {
+        const alerts = await getAlertsBySymbol(item.symbol);
+        return { symbol: item.symbol, alerts };
+      })
     );
 
-    const results = await Promise.allSettled(alertPromises);
     const newAlertsMap = new Map<string, AlertInfo>();
 
-    // Process each result, preserving symbol association
-    results.forEach((result) => {
-      if (result.status === 'fulfilled' && result.value.alerts) {
-        const { symbol, alerts } = result.value;
-        const activeAlerts = alerts.filter(
-          (a) => a.isActive && !a.isTriggered
-        );
+    results.forEach(({ symbol, alerts }) => {
+      const activeAlerts = alerts.filter(
+        (a) => a.isActive && !a.isTriggered
+      );
 
-        newAlertsMap.set(symbol, {
-          count: activeAlerts.length,
-          types: activeAlerts.map((a) => a.alertType),
-          hasActive: activeAlerts.length > 0,
-        });
-      } else if (result.status === 'fulfilled' && result.value.error) {
-        // Request failed but we handled the error - set empty alert info
-        const { symbol } = result.value;
-        newAlertsMap.set(symbol, {
-          count: 0,
-          types: [],
-          hasActive: false,
-        });
-      } else if (result.status === 'rejected') {
-        // Promise itself was rejected - this shouldn't happen due to our error handling above
-        console.error('Unexpected promise rejection in loadAllAlerts:', result.reason);
-      }
-    });
-
-    setAlertsMap(newAlertsMap);
-  };
-
-  const reloadAlertsForSymbol = async (symbol: string) => {
-    const alerts = await getAlertsBySymbol(symbol);
-    const activeAlerts = alerts.filter(
-      (a) => a.isActive && !a.isTriggered
-    );
-
-    setAlertsMap((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(symbol, {
+      newAlertsMap.set(symbol, {
         count: activeAlerts.length,
         types: activeAlerts.map((a) => a.alertType),
         hasActive: activeAlerts.length > 0,
       });
-      return newMap;
     });
+
+    setAlertsMap(newAlertsMap);
+  }, [items]);
+
+  // Load alerts for all symbols
+  useEffect(() => {
+    loadAllAlerts();
+  }, [loadAllAlerts]);
+
+  const reloadAlertsForSymbol = async (symbol: string) => {
+    try {
+      const alerts = await getAlertsBySymbol(symbol);
+      const activeAlerts = alerts.filter(
+        (a) => a.isActive && !a.isTriggered
+      );
+
+      setAlertsMap((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(symbol, {
+          count: activeAlerts.length,
+          types: activeAlerts.map((a) => a.alertType),
+          hasActive: activeAlerts.length > 0,
+        });
+        return newMap;
+      });
+    } catch (error) {
+      console.error(
+        'Failed to reload alerts for symbol:',
+        symbol,
+        error
+      );
+    }
   };
 
   const handleWatchlistChange = (
@@ -252,10 +242,14 @@ export default function WatchlistTable({
 
     if (!alertInfo || !alertInfo.hasActive) {
       // No active alerts
-      return <BellOff className="h-4 w-4 text-gray-600" />;
+      return <BellOff className="h-4 w-4 text-blue-500" />;
     }
 
     const { types, count } = alertInfo;
+
+    if (!types || types.length === 0) {
+      return <Bell className="h-4 w-4 text-yellow-400" />;
+    }
 
     // If multiple alerts, show Bell with count badge
     if (count > 1) {

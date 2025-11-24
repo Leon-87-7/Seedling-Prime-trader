@@ -247,8 +247,9 @@ export const checkStockAlerts = inngest.createFunction(
     }
 
     // Step #2: Group alerts by symbol for efficient API calls
+    // Normalize symbols to match getBatchStockQuotes normalization
     const symbolsToCheck = [
-      ...new Set(alerts.map((alert) => alert.symbol)),
+      ...new Set(alerts.map((alert) => alert.symbol.trim().toUpperCase())),
     ];
 
     // Step #3: Fetch current stock data for all symbols
@@ -271,7 +272,9 @@ export const checkStockAlerts = inngest.createFunction(
     }> = [];
 
     for (const alert of alerts) {
-      const stockData = stockDataMap.get(alert.symbol);
+      // Normalize symbol to match the keys in stockDataMap
+      const normalizedSymbol = alert.symbol.trim().toUpperCase();
+      const stockData = stockDataMap.get(normalizedSymbol);
       if (!stockData) {
         console.warn(
           `No stock data found for ${alert.symbol}, skipping alert check`
@@ -322,7 +325,7 @@ export const checkStockAlerts = inngest.createFunction(
         triggeredAlerts.push({
           alertId: alert.id,
           userId: alert.userId,
-          symbol: alert.symbol,
+          symbol: normalizedSymbol,
           company: alert.company,
           alertType: alert.alertType,
           currentPrice: stockData.currentPrice,

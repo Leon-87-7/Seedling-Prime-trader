@@ -49,33 +49,21 @@ export const getUserById = async (
     const db = mongoose.connection.db;
     if (!db) throw new Error('Mongoose connection not connected');
 
-    // Try to find by id field first (Better Auth string ID)
-    let user = await db.collection('user').findOne(
-      { id: userId },
-      {
-        projection: {
-          _id: 1,
-          id: 1,
-          email: 1,
-          name: 1,
-        },
-      }
-    );
+    const projection = {
+      _id: 1,
+      id: 1,
+      email: 1,
+      name: 1,
+    };
+
+    let user = await db.collection('user').findOne({ projection });
 
     // If not found and userId looks like an ObjectId, try _id field
     if (!user && /^[0-9a-fA-F]{24}$/.test(userId)) {
       const { ObjectId } = await import('mongodb');
-      user = await db.collection('user').findOne(
-        { _id: new ObjectId(userId) },
-        {
-          projection: {
-            _id: 1,
-            id: 1,
-            email: 1,
-            name: 1,
-          },
-        }
-      );
+      user = await db
+        .collection('user')
+        .findOne({ _id: new ObjectId(userId) }, { projection });
     }
 
     if (!user || !user.email) {
