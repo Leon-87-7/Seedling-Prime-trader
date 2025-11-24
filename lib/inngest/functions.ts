@@ -116,34 +116,6 @@ export const sendSignUpEmail = inngest.createFunction(
   }
 );
 
-/**
- * Scheduled function to send daily news summaries
- *
- * This function can be triggered in two ways:
- * 1. Event-based: When 'app/send.daily.news' event is sent
- * 2. Time-based: Automatically runs on a cron schedule
- *
- * Cron Schedule Syntax: minute hour day-of-month month day-of-week
- * - minute (0-59): Which minute of the hour
- * - hour (0-23): Which hour of the day (0 = midnight, 12 = noon)
- * - day-of-month (1-31): Which day of the month (* = every day)
- * - month (1-12): Which month (* = every month)
- * - day-of-week (0-7): Which day of week (0 or 7 = Sunday, * = every day)
- *
- * Current schedule: '0 12 * * *'
- * - Runs at minute 0 (start of the hour)
- * - At hour 12 (noon)
- * - Every day of the month (*)
- * - Every month (*)
- * - Every day of the week (*)
- * Result: Executes daily at 12:00 PM (noon)
- *
- * Examples of other cron schedules:
- * - '0 9 * * 1-5' = Weekdays at 9:00 AM
- * - '30 18 * * *' = Every day at 6:30 PM
- * - '0 0 1 * *' = First day of every month at midnight
- * - '0 * / 4 * * *' = Every 4 hours
- */
 export const sendDailyNewsSummary = inngest.createFunction(
   { id: 'daily-news-summary' },
   [{ event: 'app/send.daily.news' }, { cron: '0 12 * * *' }],
@@ -278,12 +250,12 @@ export const checkStockAlerts = inngest.createFunction(
     ];
 
     // Step #3: Fetch current stock data for all symbols
-    const stockDataMap = await step.run(
+    const stockDataMap = (await step.run(
       'fetch-stock-data',
       async (): Promise<Map<string, StockQuoteData>> => {
         return await getBatchStockQuotes(symbolsToCheck);
       }
-    ) as Map<string, StockQuoteData>;
+    )) as Map<string, StockQuoteData>;
 
     // Step #4: Check each alert and trigger if conditions are met
     const triggeredAlerts: Array<{
@@ -309,11 +281,31 @@ export const checkStockAlerts = inngest.createFunction(
 
       // Check alert conditions
       if (alert.alertType === 'price_upper') {
-        shouldTrigger =
-          stockData.currentPrice >= (alert.targetPrice || Infinity);
+        // Validate targetPrice for price_upper alerts
+        if (
+          typeof alert.targetPrice !== 'number' ||
+          !isFinite(alert.targetPrice)
+        ) {
+          console.error(
+            `Alert ${alert.id} for ${alert.symbol} has invalid targetPrice (price_upper requires valid number). Skipping.`
+          );
+          continue;
+        }
+        const targetPrice = alert.targetPrice;
+        shouldTrigger = stockData.currentPrice >= targetPrice;
       } else if (alert.alertType === 'price_lower') {
-        shouldTrigger =
-          stockData.currentPrice <= (alert.targetPrice || 0);
+        // Validate targetPrice for price_lower alerts
+        if (
+          typeof alert.targetPrice !== 'number' ||
+          !isFinite(alert.targetPrice)
+        ) {
+          console.error(
+            `Alert ${alert.id} for ${alert.symbol} has invalid targetPrice (price_lower requires valid number). Skipping.`
+          );
+          continue;
+        }
+        const targetPrice = alert.targetPrice;
+        shouldTrigger = stockData.currentPrice <= targetPrice;
       } else if (alert.alertType === 'volume') {
         // Volume alerts are not supported yet because Finnhub quote endpoint
         // doesn't provide volume data. Skip volume alerts for now.
@@ -388,13 +380,26 @@ export const checkStockAlerts = inngest.createFunction(
               alert.alertType === 'price_upper' ||
               alert.alertType === 'price_lower'
             ) {
+              // Validate targetPrice before sending email
+              if (
+                typeof alert.targetPrice !== 'number' ||
+                !isFinite(alert.targetPrice)
+              ) {
+                console.error(
+                  `Alert ${alert.alertId} for ${alert.symbol} has invalid targetPrice. Skipping email.`
+                );
+                continue;
+              }
+
+              const targetPrice = alert.targetPrice;
+
               await sendPriceAlertEmail({
                 email: user.email,
                 name: user.name || 'Investor',
                 symbol: alert.symbol,
                 company: alert.company,
                 currentPrice: formatPrice(alert.currentPrice),
-                targetPrice: formatPrice(alert.targetPrice || 0),
+                targetPrice: formatPrice(targetPrice),
                 alertType:
                   alert.alertType === 'price_upper'
                     ? 'upper'
@@ -441,3 +446,32 @@ export const checkStockAlerts = inngest.createFunction(
     };
   }
 );
+
+/**
+ * Scheduled function to send daily news summaries
+ *
+ * This function can be triggered in two ways:
+ * 1. Event-based: When 'app/send.daily.news' event is sent
+ * 2. Time-based: Automatically runs on a cron schedule
+ *
+ * Cron Schedule Syntax: minute hour day-of-month month day-of-week
+ * - minute (0-59): Which minute of the hour
+ * - hour (0-23): Which hour of the day (0 = midnight, 12 = noon)
+ * - day-of-month (1-31): Which day of the month (* = every day)
+ * - month (1-12): Which month (* = every month)
+ * - day-of-week (0-7): Which day of week (0 or 7 = Sunday, * = every day)
+ *
+ * Current schedule: '0 12 * * *'
+ * - Runs at minute 0 (start of the hour)
+ * - At hour 12 (noon)
+ * - Every day of the month (*)
+ * - Every month (*)
+ * - Every day of the week (*)
+ * Result: Executes daily at 12:00 PM (noon)
+ *
+ * Examples of other cron schedules:
+ * - '0 9 * * 1-5' = Weekdays at 9:00 AM
+ * - '30 18 * * *' = Every day at 6:30 PM
+ * - '0 0 1 * *' = First day of every month at midnight
+ * - '0 * / 4 * * *' = Every 4 hours
+ */
