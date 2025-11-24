@@ -354,11 +354,13 @@ export const checkStockAlerts = inngest.createFunction(
         for (const alert of triggeredAlerts) {
           try {
             // Get user email from database
-            const user = await db.collection('user').findOne<{
+            const user = (await db.collection('user').findOne({
+              id: alert.userId,
+            })) as {
               id: string;
               email?: string;
               name?: string;
-            }>({ id: alert.userId });
+            } | null;
 
             if (!user || !user.email) {
               console.error(
