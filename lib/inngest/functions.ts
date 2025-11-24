@@ -307,8 +307,6 @@ export const checkStockAlerts = inngest.createFunction(
       alertType: string;
       currentPrice: number;
       targetPrice?: number;
-      currentVolume?: number;
-      averageVolume?: number;
     }> = [];
 
     for (const alert of alerts) {
@@ -330,15 +328,12 @@ export const checkStockAlerts = inngest.createFunction(
         shouldTrigger =
           stockData.currentPrice <= (alert.targetPrice || 0);
       } else if (alert.alertType === 'volume') {
-        // For volume alerts, we need average volume
-        // Finnhub doesn't provide average volume in quote, so we'll check if volume is available
-        // and use a simple check against the multiplier
-        const currentVolume = stockData.volume || 0;
-        const averageVolume =
-          stockData.previousClosePrice || currentVolume; // Fallback
-        shouldTrigger =
-          currentVolume >=
-          averageVolume * (alert.volumeMultiplier || 2);
+        // Volume alerts are not supported yet because Finnhub quote endpoint
+        // doesn't provide volume data. Skip volume alerts for now.
+        console.warn(
+          `Volume alert for ${alert.symbol} skipped - volume data not available from Finnhub quote endpoint`
+        );
+        continue;
       }
 
       if (shouldTrigger) {
@@ -350,8 +345,6 @@ export const checkStockAlerts = inngest.createFunction(
           alertType: alert.alertType,
           currentPrice: stockData.currentPrice,
           targetPrice: alert.targetPrice,
-          currentVolume: stockData.volume,
-          averageVolume: stockData.previousClosePrice, // Placeholder
         });
       }
     }
@@ -392,6 +385,8 @@ export const checkStockAlerts = inngest.createFunction(
             });
 
             // Send appropriate email based on alert type
+            // Note: Volume alerts are currently disabled because Finnhub quote endpoint
+            // doesn't provide volume data, so only price alerts will be sent
             if (
               alert.alertType === 'price_upper' ||
               alert.alertType === 'price_lower'
@@ -407,33 +402,6 @@ export const checkStockAlerts = inngest.createFunction(
                   alert.alertType === 'price_upper'
                     ? 'upper'
                     : 'lower',
-                timestamp,
-              });
-            } else if (alert.alertType === 'volume') {
-              const currentVolumeM = (
-                (alert.currentVolume || 0) / 1_000_000
-              ).toFixed(2);
-              const averageVolumeM = (
-                (alert.averageVolume || 0) / 1_000_000
-              ).toFixed(2);
-              const spikeMultiplier = (
-                (alert.currentVolume || 0) /
-                (alert.averageVolume || 1)
-              ).toFixed(1);
-
-              await sendVolumeAlertEmail({
-                email: user.email,
-                name: user.name || 'Investor',
-                symbol: alert.symbol,
-                company: alert.company,
-                currentVolume: currentVolumeM,
-                averageVolume: averageVolumeM,
-                volumeSpike: `${spikeMultiplier}x`,
-                currentPrice: formatPrice(alert.currentPrice),
-                changePercent: '0.00', // Calculate from stockData if needed
-                priceColor: '#10b981',
-                changeDirection: '+',
-                alertMessage: `Volume exceeded ${spikeMultiplier}x average trading activity`,
                 timestamp,
               });
             }
