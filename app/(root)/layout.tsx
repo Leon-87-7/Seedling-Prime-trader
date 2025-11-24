@@ -1,3 +1,4 @@
+import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import { getAuth } from '@/lib/better-auth/auth';
 import { headers } from 'next/headers';
@@ -25,6 +26,7 @@ const Layout = async ({
     <main className="min-h-screen text-gray-400">
       <Header user={user} />
       <div className="container py-10">{children}</div>
+      <Footer />
     </main>
   );
 };
