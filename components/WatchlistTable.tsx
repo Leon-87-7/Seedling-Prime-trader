@@ -90,20 +90,43 @@ export default function WatchlistTable({
   }, [items]);
 
   const loadAllAlerts = async () => {
+    // Run all API calls in parallel
+    const alertPromises = items.map((item) =>
+      getAlertsBySymbol(item.symbol).then(
+        (alerts) => ({ symbol: item.symbol, alerts, error: null }),
+        (error) => ({ symbol: item.symbol, alerts: null, error })
+      )
+    );
+
+    const results = await Promise.allSettled(alertPromises);
     const newAlertsMap = new Map<string, AlertInfo>();
 
-    for (const item of items) {
-      const alerts = await getAlertsBySymbol(item.symbol);
-      const activeAlerts = alerts.filter(
-        (a) => a.isActive && !a.isTriggered
-      );
+    // Process each result, preserving symbol association
+    results.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value.alerts) {
+        const { symbol, alerts } = result.value;
+        const activeAlerts = alerts.filter(
+          (a) => a.isActive && !a.isTriggered
+        );
 
-      newAlertsMap.set(item.symbol, {
-        count: activeAlerts.length,
-        types: activeAlerts.map((a) => a.alertType),
-        hasActive: activeAlerts.length > 0,
-      });
-    }
+        newAlertsMap.set(symbol, {
+          count: activeAlerts.length,
+          types: activeAlerts.map((a) => a.alertType),
+          hasActive: activeAlerts.length > 0,
+        });
+      } else if (result.status === 'fulfilled' && result.value.error) {
+        // Request failed but we handled the error - set empty alert info
+        const { symbol } = result.value;
+        newAlertsMap.set(symbol, {
+          count: 0,
+          types: [],
+          hasActive: false,
+        });
+      } else if (result.status === 'rejected') {
+        // Promise itself was rejected - this shouldn't happen due to our error handling above
+        console.error('Unexpected promise rejection in loadAllAlerts:', result.reason);
+      }
+    });
 
     setAlertsMap(newAlertsMap);
   };
@@ -391,7 +414,11 @@ export default function WatchlistTable({
                     reloadAlertsForSymbol(item.symbol)
                   }
                 >
-                  <button className="flex items-center rounded-3xl">
+                  <button
+                    className="flex items-center rounded-3xl"
+                    type="button"
+                    aria-label={`Manage alerts for ${item.symbol}`}
+                  >
                     {getAlertIcon(item.symbol)}
                   </button>
                 </AlertDialog>

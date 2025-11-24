@@ -308,14 +308,15 @@ export const checkStockAlerts = inngest.createFunction(
         }
         const targetPrice = alert.targetPrice;
         shouldTrigger = stockData.currentPrice <= targetPrice;
-      } else if (alert.alertType === 'volume') {
-        // Volume alerts are not supported yet because Finnhub quote endpoint
-        // doesn't provide volume data. Skip volume alerts for now.
-        console.warn(
-          `Volume alert for ${alert.symbol} skipped - volume data not available from Finnhub quote endpoint`
-        );
-        continue;
       }
+      // else if (alert.alertType === 'volume') {
+      //   // Volume alerts are not supported yet because Finnhub quote endpoint
+      //   // doesn't provide volume data. Skip volume alerts for now.
+      //   console.warn(
+      //     `Volume alert for ${alert.symbol} skipped - volume data not available from Finnhub quote endpoint`
+      //   );
+      //   continue;
+      // }
 
       if (shouldTrigger) {
         triggeredAlerts.push({
