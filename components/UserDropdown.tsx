@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import NavItems from './NavItems';
 import { signOut } from '@/lib/actions/auth.actions';
 import { toast } from 'sonner';
+import { getDiceBearUrl } from '@/lib/avatar';
 
 const UserDropdown = ({
   user,
@@ -24,6 +25,8 @@ const UserDropdown = ({
   initialStocks: StockWithWatchlistStatus[];
 }) => {
   const router = useRouter();
+
+  const avatarIcon = getDiceBearUrl(user.email, 'shapes');
 
   const handleSignOut = async () => {
     const result = await signOut();
@@ -52,7 +55,7 @@ const UserDropdown = ({
           className="flex items-center gap-3 text-gray-400 hover:text-yellow-500"
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage src="https://github.com/leon-87-7.png" />
+            <AvatarImage src={avatarIcon} />
             <AvatarFallback className="bg-yellow-500 text-yellow-900 text-sm font-bold">
               {user.name[0]}
             </AvatarFallback>
@@ -68,7 +71,7 @@ const UserDropdown = ({
         <DropdownMenuLabel>
           <div className="flex relative items-center gap-3 py-2">
             <Avatar className="h-10 w-10">
-              <AvatarImage src="https://github.com/leon-87-7.png" />
+              <AvatarImage src={avatarIcon} />
               <AvatarFallback className="bg-yellow-500 text-yellow-900 text-sm font-bold">
                 {user.name[0]}
               </AvatarFallback>
