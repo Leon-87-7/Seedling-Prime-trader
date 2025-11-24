@@ -9,7 +9,10 @@ import {
   sendPriceAlertEmail,
   sendVolumeAlertEmail,
 } from '../nodemailer';
-import { getAllUsersForNewsEmail } from '../actions/user.actions';
+import {
+  getAllUsersForNewsEmail,
+  getUserById,
+} from '../actions/user.actions';
 import { getWatchlistSymbolsByEmail } from '../actions/watchlist.actions';
 import {
   getActiveAlerts,
@@ -21,7 +24,6 @@ import {
   type StockQuoteData,
 } from '../actions/finnhub.actions';
 import { formatDateToday, formatPrice } from '../utils';
-import { connectToDatabase } from '@/database/mongoose';
 
 interface UserForNewsEmail {
   email: string;
@@ -342,25 +344,12 @@ export const checkStockAlerts = inngest.createFunction(
     const emailResults = await step.run(
       'send-alert-emails',
       async () => {
-        const mongoose = await connectToDatabase();
-        const db = mongoose.connection.db;
-
-        if (!db) {
-          throw new Error('Database connection not established');
-        }
-
         const results = [];
 
         for (const alert of triggeredAlerts) {
           try {
-            // Get user email from database
-            const user = (await db.collection('user').findOne({
-              id: alert.userId,
-            })) as {
-              id: string;
-              email?: string;
-              name?: string;
-            } | null;
+            // Get user email from database using centralized helper
+            const user = await getUserById(alert.userId);
 
             if (!user || !user.email) {
               console.error(

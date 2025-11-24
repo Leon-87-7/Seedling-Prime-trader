@@ -237,7 +237,7 @@ export default function WatchlistTable({
     // If multiple alerts, show Bell with count badge
     if (count > 1) {
       return (
-        <div className="relative">
+        <div className="relative inline-flex">
           <Bell className="h-4 w-4 text-yellow-400" />
           <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
             {count}
@@ -250,37 +250,26 @@ export default function WatchlistTable({
     const alertType = types[0];
     if (alertType === 'price_upper') {
       return (
-        <div className="relative">
-          <span className="absolute rounded-full bg-gray-600 w-6 h-6 flex items-center justify-center hover:bg-stone-800 transition-colors ">
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </span>
-        </div>
+        <span className="inline-flex rounded-full bg-gray-600 w-6 h-6 items-center justify-center hover:bg-stone-800 transition-colors">
+          <TrendingUp className="h-4 w-4 text-green-500" />
+        </span>
       );
     } else if (alertType === 'price_lower') {
       return (
-        <div className="relative">
-          <span className="absolute rounded-full bg-gray-600 w-6 h-6 flex items-center justify-center hover:bg-stone-800 transition-colors">
-            <TrendingUp className="h-4 w-4 text-red-500" />
-          </span>
-        </div>
+        <span className="inline-flex rounded-full bg-gray-600 w-6 h-6 items-center justify-center hover:bg-stone-800 transition-colors">
+          <TrendingDown className="h-4 w-4 text-red-500" />
+        </span>
       );
     } else if (alertType === 'volume') {
       return (
-        <div className="relative">
-          <span className="absolute rounded-full bg-gray-600 w-6 h-6 flex items-center justify-center hover:bg-stone-800 transition-colors">
-            <Activity className="h-4 w-4 text-blue-500" />
-          </span>
-        </div>
+        <span className="inline-flex rounded-full bg-gray-600 w-6 h-6 items-center justify-center hover:bg-stone-800 transition-colors">
+          <Activity className="h-4 w-4 text-blue-500" />
+        </span>
       );
     }
 
     // Fallback
-    return (
-      <Bell
-        className="h-4 w-4 text-yellow-400"
-        fill="true"
-      />
-    );
+    return <Bell className="h-4 w-4 text-yellow-400" />;
   };
 
   if (!localItems || localItems.length === 0) {
