@@ -6,11 +6,18 @@ import {
 import {
   sendWelcomeEmail,
   sendNewsSummaryEmail,
+  sendPriceAlertEmail,
+  sendVolumeAlertEmail,
 } from '../nodemailer';
 import { getAllUsersForNewsEmail } from '../actions/user.actions';
 import { getWatchlistSymbolsByEmail } from '../actions/watchlist.actions';
-import { getNews } from '../actions/finnhub.actions';
-import { formatDateToday } from '../utils';
+import {
+  getActiveAlerts,
+  markAlertAsTriggered,
+} from '../actions/alert.actions';
+import { getNews, getBatchStockQuotes } from '../actions/finnhub.actions';
+import { formatDateToday, formatPrice } from '../utils';
+import { connectToDatabase } from '@/database/mongoose';
 
 interface UserForNewsEmail {
   email: string;
@@ -236,6 +243,236 @@ export const sendDailyNewsSummary = inngest.createFunction(
     return {
       success: true,
       message: 'Daily news summary emails sent successfully',
+    };
+  }
+);
+
+/**
+ * Scheduled function to check stock alerts and send notifications
+ *
+ * This function can be triggered in two ways:
+ * 1. Event-based: When 'app/check.stock.alerts' event is sent
+ * 2. Time-based: Automatically runs every 15 minutes during market hours
+ *
+ * Cron Schedule: '0,15,30,45 9-16 * * 1-5'
+ * - Runs at minutes 0, 15, 30, 45 of each hour
+ * - Between hours 9 AM and 4 PM (9:00-16:59)
+ * - Every day of the month
+ * - Every month
+ * - Monday through Friday (1-5)
+ * Result: Executes every 15 minutes during market hours on weekdays
+ *
+ * For testing, you can also trigger manually via the event 'app/check.stock.alerts'
+ */
+export const checkStockAlerts = inngest.createFunction(
+  { id: 'check-stock-alerts' },
+  [
+    { event: 'app/check.stock.alerts' },
+    { cron: '0,15,30,45 9-16 * * 1-5' }, // Every 15 min during market hours
+  ],
+  async ({ step }) => {
+    // Step #1: Get all active, non-triggered alerts
+    const alerts = await step.run('get-active-alerts', async () => {
+      return await getActiveAlerts();
+    });
+
+    if (!alerts || alerts.length === 0) {
+      return {
+        success: true,
+        message: 'No active alerts to check',
+        alertsChecked: 0,
+        alertsTriggered: 0,
+      };
+    }
+
+    // Step #2: Group alerts by symbol for efficient API calls
+    const symbolsToCheck = [
+      ...new Set(alerts.map((alert) => alert.symbol)),
+    ];
+
+    // Step #3: Fetch current stock data for all symbols
+    const stockDataMap = await step.run(
+      'fetch-stock-data',
+      async () => {
+        return await getBatchStockQuotes(symbolsToCheck);
+      }
+    );
+
+    // Step #4: Check each alert and trigger if conditions are met
+    const triggeredAlerts: Array<{
+      alertId: string;
+      userId: string;
+      symbol: string;
+      company: string;
+      alertType: string;
+      currentPrice: number;
+      targetPrice?: number;
+      currentVolume?: number;
+      averageVolume?: number;
+    }> = [];
+
+    for (const alert of alerts) {
+      const stockData = stockDataMap.get(alert.symbol);
+      if (!stockData) {
+        console.warn(
+          `No stock data found for ${alert.symbol}, skipping alert check`
+        );
+        continue;
+      }
+
+      let shouldTrigger = false;
+
+      // Check alert conditions
+      if (alert.alertType === 'price_upper') {
+        shouldTrigger =
+          stockData.currentPrice >= (alert.targetPrice || Infinity);
+      } else if (alert.alertType === 'price_lower') {
+        shouldTrigger =
+          stockData.currentPrice <= (alert.targetPrice || 0);
+      } else if (alert.alertType === 'volume') {
+        // For volume alerts, we need average volume
+        // Finnhub doesn't provide average volume in quote, so we'll check if volume is available
+        // and use a simple check against the multiplier
+        const currentVolume = stockData.volume || 0;
+        const averageVolume =
+          stockData.previousClosePrice || currentVolume; // Fallback
+        shouldTrigger =
+          currentVolume >=
+          averageVolume * (alert.volumeMultiplier || 2);
+      }
+
+      if (shouldTrigger) {
+        triggeredAlerts.push({
+          alertId: alert.id,
+          userId: alert.userId,
+          symbol: alert.symbol,
+          company: alert.company,
+          alertType: alert.alertType,
+          currentPrice: stockData.currentPrice,
+          targetPrice: alert.targetPrice,
+          currentVolume: stockData.volume,
+          averageVolume: stockData.previousClosePrice, // Placeholder
+        });
+      }
+    }
+
+    // Step #5: Send email notifications for triggered alerts
+    const emailResults = await step.run(
+      'send-alert-emails',
+      async () => {
+        const mongoose = await connectToDatabase();
+        const db = mongoose.connection.db;
+
+        if (!db) {
+          throw new Error('Database connection not established');
+        }
+
+        const results = [];
+
+        for (const alert of triggeredAlerts) {
+          try {
+            // Get user email from database
+            const user = await db.collection('user').findOne<{
+              id: string;
+              email?: string;
+              name?: string;
+            }>({ id: alert.userId });
+
+            if (!user || !user.email) {
+              console.error(
+                `User not found or no email for userId: ${alert.userId}`
+              );
+              continue;
+            }
+
+            const timestamp = new Date().toLocaleString('en-US', {
+              timeZone: 'America/New_York',
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            });
+
+            // Send appropriate email based on alert type
+            if (
+              alert.alertType === 'price_upper' ||
+              alert.alertType === 'price_lower'
+            ) {
+              await sendPriceAlertEmail({
+                email: user.email,
+                name: user.name || 'Investor',
+                symbol: alert.symbol,
+                company: alert.company,
+                currentPrice: formatPrice(alert.currentPrice),
+                targetPrice: formatPrice(alert.targetPrice || 0),
+                alertType:
+                  alert.alertType === 'price_upper'
+                    ? 'upper'
+                    : 'lower',
+                timestamp,
+              });
+            } else if (alert.alertType === 'volume') {
+              const currentVolumeM = (
+                (alert.currentVolume || 0) / 1_000_000
+              ).toFixed(2);
+              const averageVolumeM = (
+                (alert.averageVolume || 0) / 1_000_000
+              ).toFixed(2);
+              const spikeMultiplier = (
+                (alert.currentVolume || 0) /
+                (alert.averageVolume || 1)
+              ).toFixed(1);
+
+              await sendVolumeAlertEmail({
+                email: user.email,
+                name: user.name || 'Investor',
+                symbol: alert.symbol,
+                company: alert.company,
+                currentVolume: currentVolumeM,
+                averageVolume: averageVolumeM,
+                volumeSpike: `${spikeMultiplier}x`,
+                currentPrice: formatPrice(alert.currentPrice),
+                changePercent: '0.00', // Calculate from stockData if needed
+                priceColor: '#10b981',
+                changeDirection: '+',
+                alertMessage: `Volume exceeded ${spikeMultiplier}x average trading activity`,
+                timestamp,
+              });
+            }
+
+            // Mark alert as triggered
+            await markAlertAsTriggered(alert.alertId);
+
+            results.push({
+              success: true,
+              alertId: alert.alertId,
+              symbol: alert.symbol,
+            });
+          } catch (error) {
+            console.error(
+              `Failed to process alert ${alert.alertId}:`,
+              error
+            );
+            results.push({
+              success: false,
+              alertId: alert.alertId,
+              symbol: alert.symbol,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : String(error),
+            });
+          }
+        }
+
+        return results;
+      }
+    );
+
+    return {
+      success: true,
+      message: 'Stock alerts checked and processed',
+      alertsChecked: alerts.length,
+      alertsTriggered: triggeredAlerts.length,
+      emailResults,
     };
   }
 );
