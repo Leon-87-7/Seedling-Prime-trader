@@ -185,22 +185,6 @@ declare global {
     className?: string;
   };
 
-  type AlertData = {
-    symbol: string;
-    company: string;
-    alertName: string;
-    alertType: 'upper' | 'lower';
-    threshold: number;
-  };
-
-  type AlertModalProps = {
-    alertId?: string;
-    alertData?: AlertData;
-    action?: string;
-    open: boolean;
-    setOpen: (open: boolean) => void;
-  };
-
   type RawNewsArticle = {
     id: number;
     headline?: string;
@@ -217,11 +201,14 @@ declare global {
     id: string;
     symbol: string;
     company: string;
-    alertName: string;
-    currentPrice: number;
-    alertType: 'upper' | 'lower';
-    threshold: number;
-    changePercent?: number;
+    alertType: 'price_upper' | 'price_lower' | 'volume';
+    targetPrice?: number;
+    volumeMultiplier?: number;
+    isActive: boolean;
+    isTriggered: boolean;
+    triggeredAt?: Date;
+    createdAt: Date;
+    updatedAt?: Date;
   };
 }
 

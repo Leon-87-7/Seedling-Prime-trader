@@ -338,6 +338,7 @@ export const WATCHLIST_TABLE_HEADER = [
   'Market Cap',
   'P/E Ratio',
   '52 Week Range',
+  'Alerts',
 ];
 
 export const ECONOMIC_CALENDAR_WIDGET_CONFIG = {
