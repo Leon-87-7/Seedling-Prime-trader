@@ -141,6 +141,9 @@ export const formatDateToday = () =>
   });
 
 export const getAlertText = (alert: Alert) => {
-  const condition = alert.alertType === 'upper' ? '>' : '<';
-  return `Price ${condition} ${formatPrice(alert.threshold)}`;
+  if (alert.alertType === 'volume') {
+    return `Volume spike ${alert.volumeMultiplier}x`;
+  }
+  const condition = alert.alertType === 'price_upper' ? '>' : '<';
+  return `Price ${condition} ${alert.targetPrice ? formatPrice(alert.targetPrice) : 'N/A'}`;
 };
