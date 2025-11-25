@@ -7,6 +7,7 @@ import {
   TRADINGVIEW_SCRIPT_BASE_URL,
   normalizeExchangeName,
 } from '@/lib/constants';
+import SearchTriggerCard from '@/components/SearchTriggerCard';
 
 export default async function Watchlist() {
   const watchlistItems = await getUserWatchlist();
@@ -25,7 +26,10 @@ export default async function Watchlist() {
           <h2 className="text-2xl font-semibold text-gray-100 mb-6">
             Top Stories by Symbol
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6
+          justify-between w-full"
+          >
             {watchlistItems.map((item) => {
               // Format symbol with exchange prefix (e.g., NASDAQ:AAPL)
               const exchangeName = item.profile?.exchange || 'NASDAQ';
@@ -45,6 +49,13 @@ export default async function Watchlist() {
                 </div>
               );
             })}
+
+            {/* Fill remaining slots with placeholder cards (up to 4 total in xl) */}
+            {Array.from({
+              length: Math.max(0, 4 - watchlistItems.length),
+            }).map((_, index) => (
+              <SearchTriggerCard key={`placeholder-${index}`} />
+            ))}
           </div>
         </div>
       )}

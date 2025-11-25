@@ -6,11 +6,24 @@ import {
 import {
   sendWelcomeEmail,
   sendNewsSummaryEmail,
+  sendPriceAlertEmail,
+  sendVolumeAlertEmail,
 } from '../nodemailer';
-import { getAllUsersForNewsEmail } from '../actions/user.actions';
+import {
+  getAllUsersForNewsEmail,
+  getUserById,
+} from '../actions/user.actions';
 import { getWatchlistSymbolsByEmail } from '../actions/watchlist.actions';
-import { getNews } from '../actions/finnhub.actions';
-import { formatDateToday } from '../utils';
+import {
+  getActiveAlerts,
+  markAlertAsTriggered,
+} from '../actions/alert.actions';
+import {
+  getNews,
+  getBatchStockQuotes,
+  type StockQuoteData,
+} from '../actions/finnhub.actions';
+import { formatDateToday, formatPrice } from '../utils';
 
 interface UserForNewsEmail {
   email: string;
@@ -26,8 +39,8 @@ export const sendSignUpEmail = inngest.createFunction(
       -country: ${event.data.country}
       -investment goals: ${event.data.investmentGoals}
       -risk tolerance: ${event.data.riskTolerance}
-      -preferred industry: ${event.data.preferredIndustry}  
-    `;
+      -preferred industry: ${event.data.preferredIndustry}
+      `;
 
     const prompt = PERSONALIZED_WELCOME_EMAIL_PROMPT.replace(
       '{{userProfile}}',
@@ -105,34 +118,6 @@ export const sendSignUpEmail = inngest.createFunction(
   }
 );
 
-/**
- * Scheduled function to send daily news summaries
- *
- * This function can be triggered in two ways:
- * 1. Event-based: When 'app/send.daily.news' event is sent
- * 2. Time-based: Automatically runs on a cron schedule
- *
- * Cron Schedule Syntax: minute hour day-of-month month day-of-week
- * - minute (0-59): Which minute of the hour
- * - hour (0-23): Which hour of the day (0 = midnight, 12 = noon)
- * - day-of-month (1-31): Which day of the month (* = every day)
- * - month (1-12): Which month (* = every month)
- * - day-of-week (0-7): Which day of week (0 or 7 = Sunday, * = every day)
- *
- * Current schedule: '0 12 * * *'
- * - Runs at minute 0 (start of the hour)
- * - At hour 12 (noon)
- * - Every day of the month (*)
- * - Every month (*)
- * - Every day of the week (*)
- * Result: Executes daily at 12:00 PM (noon)
- *
- * Examples of other cron schedules:
- * - '0 9 * * 1-5' = Weekdays at 9:00 AM
- * - '30 18 * * *' = Every day at 6:30 PM
- * - '0 0 1 * *' = First day of every month at midnight
- * - '0 * / 4 * * *' = Every 4 hours
- */
 export const sendDailyNewsSummary = inngest.createFunction(
   { id: 'daily-news-summary' },
   [{ event: 'app/send.daily.news' }, { cron: '0 12 * * *' }],
@@ -239,3 +224,249 @@ export const sendDailyNewsSummary = inngest.createFunction(
     };
   }
 );
+
+export const checkStockAlerts = inngest.createFunction(
+  { id: 'check-stock-alerts' },
+  [
+    { event: 'app/check.stock.alerts' },
+    { cron: '0,15,30,45 9-16 * * 1-5' }, // Every 15 min during market hours
+  ],
+  async ({ step }) => {
+    // Step #1: Get all active, non-triggered alerts
+    const alerts = await step.run('get-active-alerts', async () => {
+      return await getActiveAlerts();
+    });
+
+    if (!alerts || alerts.length === 0) {
+      return {
+        success: true,
+        message: 'No active alerts to check',
+        alertsChecked: 0,
+        alertsTriggered: 0,
+      };
+    }
+
+    // Step #2: Group alerts by symbol for efficient API calls
+    // Normalize symbols to match getBatchStockQuotes normalization
+    const symbolsToCheck = [
+      ...new Set(alerts.map((alert) => alert.symbol.trim().toUpperCase())),
+    ];
+
+    // Step #3: Fetch current stock data for all symbols
+    const stockDataMap = (await step.run(
+      'fetch-stock-data',
+      async (): Promise<Map<string, StockQuoteData>> => {
+        return await getBatchStockQuotes(symbolsToCheck);
+      }
+    )) as Map<string, StockQuoteData>;
+
+    // Step #4: Check each alert and trigger if conditions are met
+    const triggeredAlerts: Array<{
+      alertId: string;
+      userId: string;
+      symbol: string;
+      company: string;
+      alertType: string;
+      currentPrice: number;
+      targetPrice?: number;
+    }> = [];
+
+    for (const alert of alerts) {
+      // Normalize symbol to match the keys in stockDataMap
+      const normalizedSymbol = alert.symbol.trim().toUpperCase();
+      const stockData = stockDataMap.get(normalizedSymbol);
+      if (!stockData) {
+        console.warn(
+          `No stock data found for ${alert.symbol}, skipping alert check`
+        );
+        continue;
+      }
+
+      let shouldTrigger = false;
+
+      // Check alert conditions
+      if (alert.alertType === 'price_upper') {
+        // Validate targetPrice for price_upper alerts
+        if (
+          typeof alert.targetPrice !== 'number' ||
+          !isFinite(alert.targetPrice)
+        ) {
+          console.error(
+            `Alert ${alert.id} for ${alert.symbol} has invalid targetPrice (price_upper requires valid number). Skipping.`
+          );
+          continue;
+        }
+        const targetPrice = alert.targetPrice;
+        shouldTrigger = stockData.currentPrice >= targetPrice;
+      } else if (alert.alertType === 'price_lower') {
+        // Validate targetPrice for price_lower alerts
+        if (
+          typeof alert.targetPrice !== 'number' ||
+          !isFinite(alert.targetPrice)
+        ) {
+          console.error(
+            `Alert ${alert.id} for ${alert.symbol} has invalid targetPrice (price_lower requires valid number). Skipping.`
+          );
+          continue;
+        }
+        const targetPrice = alert.targetPrice;
+        shouldTrigger = stockData.currentPrice <= targetPrice;
+      }
+      // else if (alert.alertType === 'volume') {
+      //   // Volume alerts are not supported yet because Finnhub quote endpoint
+      //   // doesn't provide volume data. Skip volume alerts for now.
+      //   console.warn(
+      //     `Volume alert for ${alert.symbol} skipped - volume data not available from Finnhub quote endpoint`
+      //   );
+      //   continue;
+      // }
+
+      if (shouldTrigger) {
+        triggeredAlerts.push({
+          alertId: alert.id,
+          userId: alert.userId,
+          symbol: normalizedSymbol,
+          company: alert.company,
+          alertType: alert.alertType,
+          currentPrice: stockData.currentPrice,
+          targetPrice: alert.targetPrice,
+        });
+      }
+    }
+
+    if (triggeredAlerts.length === 0) {
+      return {
+        success: true,
+        message: 'Stock alerts checked; no alerts triggered',
+        alertsChecked: alerts.length,
+        alertsTriggered: 0,
+        emailResults: [],
+      };
+    }
+
+    // Step #5: Send email notifications for triggered alerts
+    const emailResults = await step.run(
+      'send-alert-emails',
+      async () => {
+        const results = [];
+
+        for (const alert of triggeredAlerts) {
+          try {
+            // Get user email from database using centralized helper
+            const user = await getUserById(alert.userId);
+
+            if (!user || !user.email) {
+              console.error(
+                `User not found or no email for userId: ${alert.userId}`
+              );
+              continue;
+            }
+
+            const timestamp = new Date().toLocaleString('en-US', {
+              timeZone: 'America/New_York',
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            });
+
+            // Send appropriate email based on alert type
+            // Note: Volume alerts are currently disabled because Finnhub quote endpoint
+            // doesn't provide volume data, so only price alerts will be sent
+            if (
+              alert.alertType === 'price_upper' ||
+              alert.alertType === 'price_lower'
+            ) {
+              // Validate targetPrice before sending email
+              if (
+                typeof alert.targetPrice !== 'number' ||
+                !isFinite(alert.targetPrice)
+              ) {
+                console.error(
+                  `Alert ${alert.alertId} for ${alert.symbol} has invalid targetPrice. Skipping email.`
+                );
+                continue;
+              }
+
+              const targetPrice = alert.targetPrice;
+
+              await sendPriceAlertEmail({
+                email: user.email,
+                name: user.name || 'Investor',
+                symbol: alert.symbol,
+                company: alert.company,
+                currentPrice: formatPrice(alert.currentPrice),
+                targetPrice: formatPrice(targetPrice),
+                alertType:
+                  alert.alertType === 'price_upper'
+                    ? 'upper'
+                    : 'lower',
+                timestamp,
+              });
+            }
+
+            // Mark alert as triggered
+            await markAlertAsTriggered(alert.alertId);
+
+            results.push({
+              success: true,
+              alertId: alert.alertId,
+              symbol: alert.symbol,
+            });
+          } catch (error) {
+            console.error(
+              `Failed to process alert ${alert.alertId}:`,
+              error
+            );
+            results.push({
+              success: false,
+              alertId: alert.alertId,
+              symbol: alert.symbol,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : String(error),
+            });
+          }
+        }
+
+        return results;
+      }
+    );
+
+    return {
+      success: true,
+      message: 'Stock alerts checked and processed',
+      alertsChecked: alerts.length,
+      alertsTriggered: triggeredAlerts.length,
+      emailResults,
+    };
+  }
+);
+
+/**
+ * Scheduled function to send daily news summaries
+ *
+ * This function can be triggered in two ways:
+ * 1. Event-based: When 'app/send.daily.news' event is sent
+ * 2. Time-based: Automatically runs on a cron schedule
+ *
+ * Cron Schedule Syntax: minute hour day-of-month month day-of-week
+ * - minute (0-59): Which minute of the hour
+ * - hour (0-23): Which hour of the day (0 = midnight, 12 = noon)
+ * - day-of-month (1-31): Which day of the month (* = every day)
+ * - month (1-12): Which month (* = every month)
+ * - day-of-week (0-7): Which day of week (0 or 7 = Sunday, * = every day)
+ *
+ * Current schedule: '0 12 * * *'
+ * - Runs at minute 0 (start of the hour)
+ * - At hour 12 (noon)
+ * - Every day of the month (*)
+ * - Every month (*)
+ * - Every day of the week (*)
+ * Result: Executes daily at 12:00 PM (noon)
+ *
+ * Examples of other cron schedules:
+ * - '0 9 * * 1-5' = Weekdays at 9:00 AM
+ * - '30 18 * * *' = Every day at 6:30 PM
+ * - '0 0 1 * *' = First day of every month at midnight
+ * - '0 * / 4 * * *' = Every 4 hours
+ */

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Table,
@@ -18,12 +18,25 @@ import {
   getChangeColorClass,
   formatMarketCapValue,
 } from '@/lib/utils';
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Bell,
+  BellOff,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+} from 'lucide-react';
+import AlertDialog from '@/components/AlertDialog';
+import { getAlertsBySymbol } from '@/lib/actions/alert.actions';
+import type { AlertType } from '@/database/models/alert.model';
 import type {
   StockQuoteData,
   StockProfileData,
   StockMetricsData,
 } from '@/lib/actions/finnhub.actions';
+import SearchTriggerCard from './SearchTriggerCard';
 
 export interface WatchlistItem {
   symbol: string;
@@ -46,6 +59,12 @@ type SortField =
   | 'peRatio';
 type SortDirection = 'asc' | 'desc' | null;
 
+interface AlertInfo {
+  count: number;
+  types: AlertType[];
+  hasActive: boolean;
+}
+
 export default function WatchlistTable({
   items,
 }: WatchlistTableProps) {
@@ -53,17 +72,81 @@ export default function WatchlistTable({
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] =
     useState<SortDirection>(null);
-  const [localItems, setLocalItems] = useState<WatchlistItem[]>(items);
+  const [localItems, setLocalItems] =
+    useState<WatchlistItem[]>(items);
+  const [alertsMap, setAlertsMap] = useState<Map<string, AlertInfo>>(
+    new Map()
+  );
 
   // Update local items when props change
   useEffect(() => {
     setLocalItems(items);
   }, [items]);
 
-  const handleWatchlistChange = (symbol: string, isAdded: boolean) => {
+  const loadAllAlerts = useCallback(async () => {
+    const results = await Promise.all(
+      items.map(async (item) => {
+        const alerts = await getAlertsBySymbol(item.symbol);
+        return { symbol: item.symbol, alerts };
+      })
+    );
+
+    const newAlertsMap = new Map<string, AlertInfo>();
+
+    results.forEach(({ symbol, alerts }) => {
+      const activeAlerts = alerts.filter(
+        (a) => a.isActive && !a.isTriggered
+      );
+
+      newAlertsMap.set(symbol, {
+        count: activeAlerts.length,
+        types: activeAlerts.map((a) => a.alertType),
+        hasActive: activeAlerts.length > 0,
+      });
+    });
+
+    setAlertsMap(newAlertsMap);
+  }, [items]);
+
+  // Load alerts for all symbols
+  useEffect(() => {
+    loadAllAlerts();
+  }, [loadAllAlerts]);
+
+  const reloadAlertsForSymbol = async (symbol: string) => {
+    try {
+      const alerts = await getAlertsBySymbol(symbol);
+      const activeAlerts = alerts.filter(
+        (a) => a.isActive && !a.isTriggered
+      );
+
+      setAlertsMap((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(symbol, {
+          count: activeAlerts.length,
+          types: activeAlerts.map((a) => a.alertType),
+          hasActive: activeAlerts.length > 0,
+        });
+        return newMap;
+      });
+    } catch (error) {
+      console.error(
+        'Failed to reload alerts for symbol:',
+        symbol,
+        error
+      );
+    }
+  };
+
+  const handleWatchlistChange = (
+    symbol: string,
+    isAdded: boolean
+  ) => {
     if (!isAdded) {
       // Remove item from local state immediately
-      setLocalItems(prev => prev.filter(item => item.symbol !== symbol));
+      setLocalItems((prev) =>
+        prev.filter((item) => item.symbol !== symbol)
+      );
     }
   };
 
@@ -83,7 +166,8 @@ export default function WatchlistTable({
   };
 
   const sortedItems = useMemo(() => {
-    if (!localItems || !sortField || !sortDirection) return localItems || [];
+    if (!localItems || !sortField || !sortDirection)
+      return localItems || [];
 
     return [...localItems].sort((a, b) => {
       let aValue: number | string = 0;
@@ -146,19 +230,82 @@ export default function WatchlistTable({
         return { field: 'peRatio', sortable: true };
       case '52 Week Range':
         return { field: null as any, sortable: false }; // Non-sortable
+      case 'Alerts':
+        return { field: null as any, sortable: false }; // Non-sortable
       default:
         return null;
     }
   };
 
+  const getAlertIcon = (symbol: string) => {
+    const alertInfo = alertsMap.get(symbol);
+
+    if (!alertInfo || !alertInfo.hasActive) {
+      // No active alerts
+      return <BellOff className="h-4 w-4 text-blue-500" />;
+    }
+
+    const { types, count } = alertInfo;
+
+    if (!types || types.length === 0) {
+      return <Bell className="h-4 w-4 text-yellow-400" />;
+    }
+
+    // If multiple alerts, show Bell with count badge
+    if (count > 1) {
+      return (
+        <div className="relative inline-flex">
+          <Bell className="h-4 w-4 text-yellow-400" />
+          <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+            {count}
+          </span>
+        </div>
+      );
+    }
+
+    // Single alert - show specific icon based on type
+    const alertType = types[0];
+    if (alertType === 'price_upper') {
+      return (
+        <span className="inline-flex rounded-full bg-gray-600 w-6 h-6 items-center justify-center hover:bg-stone-800 transition-colors">
+          <TrendingUp className="h-4 w-4 text-green-500" />
+        </span>
+      );
+    } else if (alertType === 'price_lower') {
+      return (
+        <span className="inline-flex rounded-full bg-gray-600 w-6 h-6 items-center justify-center hover:bg-stone-800 transition-colors">
+          <TrendingDown className="h-4 w-4 text-red-500" />
+        </span>
+      );
+    } else if (alertType === 'volume') {
+      return (
+        <span className="inline-flex rounded-full bg-gray-600 w-6 h-6 items-center justify-center hover:bg-stone-800 transition-colors">
+          <Activity className="h-4 w-4 text-blue-500" />
+        </span>
+      );
+    }
+
+    // Fallback
+    return <Bell className="h-4 w-4 text-yellow-400" />;
+  };
+
   if (!localItems || localItems.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400">
-        <p className="text-lg">Your watchlist is empty</p>
-        <p className="text-sm mt-2">
-          Add stocks to your watchlist to track them here
-        </p>
-      </div>
+      <>
+        <div className="text-center py-12 text-gray-400">
+          <p className="text-lg">Your watchlist is empty</p>
+          <p className="text-sm mt-2">
+            Add stocks to your watchlist to track them here
+          </p>
+        </div>
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-100 mb-6">
+            Top Stories by Symbol
+          </h2>
+
+          <SearchTriggerCard />
+        </div>
+      </>
     );
   }
 
@@ -250,6 +397,26 @@ export default function WatchlistTable({
               <TableCell className="text-left">{marketCap}</TableCell>
               <TableCell className="text-left">{peRatio}</TableCell>
               <TableCell className="text-left">{weekRange}</TableCell>
+              <TableCell
+                className="text-left"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <AlertDialog
+                  symbol={item.symbol}
+                  company={item.company}
+                  onAlertsChange={() =>
+                    reloadAlertsForSymbol(item.symbol)
+                  }
+                >
+                  <button
+                    className="flex items-center rounded-3xl"
+                    type="button"
+                    aria-label={`Manage alerts for ${item.symbol}`}
+                  >
+                    {getAlertIcon(item.symbol)}
+                  </button>
+                </AlertDialog>
+              </TableCell>
             </TableRow>
           );
         })}
