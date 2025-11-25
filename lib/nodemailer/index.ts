@@ -114,7 +114,8 @@ export const sendNewsSummaryEmail = async ({
 
 export const sendPriceAlertEmail = async ({
   email,
-  name: _name,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  name,
   symbol,
   company,
   currentPrice,
@@ -184,7 +185,8 @@ export const sendPriceAlertEmail = async ({
 
 export const sendVolumeAlertEmail = async ({
   email,
-  name: _name,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  name,
   symbol,
   company,
   currentVolume,

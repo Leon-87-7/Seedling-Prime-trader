@@ -93,7 +93,7 @@ export const createAlert = async ({
     return {
       success: true,
       message: 'Alert created successfully',
-      alertId: alert._id.toString(),
+      alertId: String(alert._id),
     };
   } catch (error) {
     console.error('Error creating alert:', error);
