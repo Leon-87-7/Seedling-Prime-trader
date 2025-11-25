@@ -57,6 +57,7 @@ export default function AlertDialog({
     if (open) {
       loadAlerts();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, symbol]);
 
   const loadAlerts = async () => {

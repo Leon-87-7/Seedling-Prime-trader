@@ -114,7 +114,7 @@ export const sendNewsSummaryEmail = async ({
 
 export const sendPriceAlertEmail = async ({
   email,
-  name,
+  name: _name,
   symbol,
   company,
   currentPrice,
@@ -184,7 +184,7 @@ export const sendPriceAlertEmail = async ({
 
 export const sendVolumeAlertEmail = async ({
   email,
-  name,
+  name: _name,
   symbol,
   company,
   currentVolume,

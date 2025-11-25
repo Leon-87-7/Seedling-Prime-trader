@@ -7,7 +7,6 @@ import {
   sendWelcomeEmail,
   sendNewsSummaryEmail,
   sendPriceAlertEmail,
-  sendVolumeAlertEmail,
 } from '../nodemailer';
 import {
   getAllUsersForNewsEmail,
@@ -197,7 +196,7 @@ export const sendDailyNewsSummary = inngest.createFunction(
           'No market news.';
 
         userNewsSummaries.push({ user, newsContent });
-      } catch (e) {
+      } catch {
         console.error('Failed to summarize news for : ', user.email);
         userNewsSummaries.push({ user, newsContent: null });
       }

@@ -7,10 +7,9 @@ import {
   CommandList,
   CommandEmpty,
 } from '@/components/ui/command';
-import { Item, ItemMedia } from '@/components/ui/item';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from './ui/button';
-import { Loader2, TrendingUp } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { searchStocks } from '@/lib/actions/finnhub.actions';
 import { useDebounce } from '@/app/hooks/useDebounce';

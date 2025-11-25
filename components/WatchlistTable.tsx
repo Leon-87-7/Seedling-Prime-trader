@@ -216,7 +216,7 @@ export default function WatchlistTable({
 
   const getHeaderConfig = (
     header: string
-  ): { field: SortField; sortable: boolean } | null => {
+  ): { field?: SortField; sortable: boolean } | null => {
     switch (header) {
       case 'Company':
         return { field: 'company', sortable: true };
@@ -229,9 +229,9 @@ export default function WatchlistTable({
       case 'P/E Ratio':
         return { field: 'peRatio', sortable: true };
       case '52 Week Range':
-        return { field: null as any, sortable: false }; // Non-sortable
+        return { sortable: false }; // Non-sortable
       case 'Alerts':
-        return { field: null as any, sortable: false }; // Non-sortable
+        return { sortable: false }; // Non-sortable
       default:
         return null;
     }
@@ -323,11 +323,11 @@ export default function WatchlistTable({
                 key={header}
                 className={`text-left ${isSortable ? 'cursor-pointer select-none hover:text-gray-300' : ''}`}
                 onClick={() =>
-                  isSortable && config && handleSort(config.field)
+                  isSortable && config?.field && handleSort(config.field)
                 }
               >
                 {header}
-                {isSortable && config && getSortIcon(config.field)}
+                {isSortable && config?.field && getSortIcon(config.field)}
               </TableHead>
             );
           })}
