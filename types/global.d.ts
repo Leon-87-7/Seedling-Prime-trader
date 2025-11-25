@@ -117,6 +117,7 @@ declare global {
     showTrashIcon?: boolean;
     type?: 'button' | 'icon';
     onWatchlistChange?: (symbol: string, isAdded: boolean) => void;
+    navigateOnAdd?: boolean;
   };
 
   type QuoteData = {

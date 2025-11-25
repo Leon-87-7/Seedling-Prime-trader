@@ -73,6 +73,15 @@ export default async function StockDetails({
             height={440}
           />
         </div>
+        {/* WatchlistButton appears here on mobile, hidden on desktop */}
+        <div className="lg:hidden">
+          <WatchlistButton
+            symbol={symbol}
+            company={symbol}
+            isInWatchlist={isInWatchlist}
+            navigateOnAdd={true}
+          />
+        </div>
       </div>
     </div>
   );

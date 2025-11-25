@@ -8,8 +8,10 @@ import SearchCommand from './SearchCommand';
 
 const NavItems = ({
   initialStocks,
+  onNavigate,
 }: {
   initialStocks: StockWithWatchlistStatus[];
+  onNavigate?: () => void;
 }) => {
   const pathname = usePathname();
 
@@ -40,6 +42,7 @@ const NavItems = ({
                 'hover:text-yellow-500 transition-colors',
                 isActive(href) && 'text-gray-100'
               )}
+              onClick={() => onNavigate?.()}
             >
               {label}
             </Link>

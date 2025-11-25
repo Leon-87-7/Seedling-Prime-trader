@@ -18,6 +18,7 @@ export default function WatchlistButton({
   showTrashIcon = false,
   type = 'button',
   onWatchlistChange,
+  navigateOnAdd = false,
 }: WatchlistButtonProps) {
   const [isAdded, setIsAdded] = useState(isInWatchlist);
   const [isPending, setIsPending] = useState(false);
@@ -41,6 +42,12 @@ export default function WatchlistButton({
         toast.success(`${symbol} added to watchlist`, {
           description: `${company} has been added to your watchlist.`,
         });
+
+        // Navigate to watchlist page if requested
+        if (navigateOnAdd) {
+          router.push('/watchlist');
+          return;
+        }
       }
       startTransition(() => {
         router.refresh();

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
@@ -11,7 +12,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from './ui/dropdown-menu';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import NavItems from './NavItems';
 import { signOut } from '@/lib/actions/auth.actions';
 import { toast } from 'sonner';
@@ -25,8 +26,15 @@ const UserDropdown = ({
   initialStocks: StockWithWatchlistStatus[];
 }) => {
   const router = useRouter();
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   const avatarIcon = getDiceBearUrl(user.email, 'shapes');
+
+  // Close dropdown when route changes
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const handleSignOut = async () => {
     const result = await signOut();
@@ -48,7 +56,7 @@ const UserDropdown = ({
   // const user = { name: 'Leon', email: 'fake@Mail.com' };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -96,7 +104,7 @@ const UserDropdown = ({
         </DropdownMenuItem>
         <DropdownMenuSeparator className="hidden sm:block bg-gray-600" />
         <nav className="sm:hidden">
-          <NavItems initialStocks={initialStocks} />
+          <NavItems initialStocks={initialStocks} onNavigate={() => setOpen(false)} />
         </nav>
       </DropdownMenuContent>
     </DropdownMenu>
